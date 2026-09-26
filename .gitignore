@@ -1,0 +1,14 @@
+/vendor/
+/composer.lock
+/node_modules/
+/package-lock.json
+.phpunit.cache/
+.phpunit.result.cache
+.DS_Store
+
+# Private planning notes
+docs/*.local.md
+
+# Cowork session scratch.
+/Claude outputs
+/.claude

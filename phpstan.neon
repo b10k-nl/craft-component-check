@@ -1,0 +1,9 @@
+parameters:
+    level: 5
+    paths:
+        - src
+    treatPhpDocTypesAsCertain: false
+    # Craft aliases a global `Craft` class at runtime. Vanilla PHPStan can't see
+    # that alias; the craftcms/phpstan extension is the full fix.
+    ignoreErrors:
+        - '#unknown class Craft#'
