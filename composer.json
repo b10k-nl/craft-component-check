@@ -1,0 +1,76 @@
+{
+    "name": "b10k/craft-component-regression",
+    "description": "Craft tells Playwright what to test: finds where every Matrix block is actually used and runs desktop + mobile browser checks on those pages, without writing a single test.",
+    "type": "craft-plugin",
+    "keywords": [
+        "craft",
+        "cms",
+        "craftcms",
+        "craft-plugin",
+        "testing",
+        "regression testing",
+        "playwright",
+        "smoke test",
+        "matrix",
+        "page builder",
+        "components",
+        "ci",
+        "ai agents"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "b10k",
+            "homepage": "https://b10k.nl"
+        }
+    ],
+    "support": {
+        "docs": "https://github.com/b10k-nl/craft-component-regression/blob/main/README.md",
+        "issues": "https://github.com/b10k-nl/craft-component-regression/issues",
+        "source": "https://github.com/b10k-nl/craft-component-regression"
+    },
+    "require": {
+        "php": ">=8.2",
+        "craftcms/cms": "^5.0.0"
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^2.0",
+        "phpunit/phpunit": "^10.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "b10k\\componentregression\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "b10k\\componentregression\\tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "handle": "component-regression",
+        "name": "Component Regression",
+        "developer": "b10k",
+        "developerUrl": "https://b10k.nl",
+        "documentationUrl": "https://github.com/b10k-nl/craft-component-regression/blob/main/README.md",
+        "changelogUrl": "https://github.com/b10k-nl/craft-component-regression/blob/main/CHANGELOG.md",
+        "class": "b10k\\componentregression\\Plugin"
+    },
+    "scripts": {
+        "test": "phpunit",
+        "analyse": "phpstan analyse",
+        "check": [
+            "@test",
+            "@analyse"
+        ]
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "craftcms/plugin-installer": true,
+            "yiisoft/yii2-composer": true
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
