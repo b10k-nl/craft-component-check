@@ -103,7 +103,7 @@ export function buildChecks(observed, expected, options = {}) {
           check(
             'component-present',
             SKIPPED,
-            options.markersExpected ? 'No markers on this page — is craft.regression.start() in the block loop?' : 'Markers off: page-level checks only',
+            options.markersExpected ? 'No markers on this page — is craft.componentCheck.start() in the block loop?' : 'Markers off: page-level checks only',
             component,
             blockId,
           ),

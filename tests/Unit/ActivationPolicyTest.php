@@ -1,8 +1,8 @@
 <?php
 
-namespace b10k\componentregression\tests\Unit;
+namespace b10k\componentcheck\tests\Unit;
 
-use b10k\componentregression\services\ActivationPolicy;
+use b10k\componentcheck\services\ActivationPolicy;
 use PHPUnit\Framework\TestCase;
 
 class ActivationPolicyTest extends TestCase
@@ -39,7 +39,7 @@ class ActivationPolicyTest extends TestCase
 
     public function testExplainMentionsHowToEnable(): void
     {
-        $this->assertStringContainsString('config/component-regression.php', ActivationPolicy::explain('', false));
+        $this->assertStringContainsString('config/component-check.php', ActivationPolicy::explain('', false));
         $this->assertStringContainsString('explicitly', ActivationPolicy::explain('readonly', false));
     }
 }

@@ -1,14 +1,14 @@
 <?php
 
-namespace b10k\componentregression\models;
+namespace b10k\componentcheck\models;
 
-use b10k\componentregression\services\ActivationPolicy;
+use b10k\componentcheck\services\ActivationPolicy;
 use craft\base\Model;
 
 /**
- * Component Regression settings.
+ * Component Check settings.
  *
- * Everything here is meant to live in `config/component-regression.php`
+ * Everything here is meant to live in `config/component-check.php`
  * (committed, env-aware) rather than in the database: the plugin has no CP
  * settings screen in v0.1.
  */
@@ -77,7 +77,7 @@ class Settings extends Model
     /**
      * @var string Where manifests, results, screenshots and traces are written.
      */
-    public string $outputPath = '@storage/component-regression';
+    public string $outputPath = '@storage/component-check';
 
     /**
      * @var string Node binary used to run the bundled Playwright runner.

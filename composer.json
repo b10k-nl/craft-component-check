@@ -1,5 +1,5 @@
 {
-    "name": "b10k/craft-component-regression",
+    "name": "b10k/craft-component-check",
     "description": "Craft tells Playwright what to test: finds where every Matrix block is actually used and runs desktop + mobile browser checks on those pages, without writing a single test.",
     "type": "craft-plugin",
     "keywords": [
@@ -25,9 +25,9 @@
         }
     ],
     "support": {
-        "docs": "https://github.com/b10k-nl/craft-component-regression/blob/main/README.md",
-        "issues": "https://github.com/b10k-nl/craft-component-regression/issues",
-        "source": "https://github.com/b10k-nl/craft-component-regression"
+        "docs": "https://github.com/b10k-nl/craft-component-check/blob/main/README.md",
+        "issues": "https://github.com/b10k-nl/craft-component-check/issues",
+        "source": "https://github.com/b10k-nl/craft-component-check"
     },
     "require": {
         "php": ">=8.2",
@@ -39,22 +39,22 @@
     },
     "autoload": {
         "psr-4": {
-            "b10k\\componentregression\\": "src/"
+            "b10k\\componentcheck\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "b10k\\componentregression\\tests\\": "tests/"
+            "b10k\\componentcheck\\tests\\": "tests/"
         }
     },
     "extra": {
-        "handle": "component-regression",
-        "name": "Component Regression",
+        "handle": "component-check",
+        "name": "Component Check",
         "developer": "b10k",
         "developerUrl": "https://b10k.nl",
-        "documentationUrl": "https://github.com/b10k-nl/craft-component-regression/blob/main/README.md",
-        "changelogUrl": "https://github.com/b10k-nl/craft-component-regression/blob/main/CHANGELOG.md",
-        "class": "b10k\\componentregression\\Plugin"
+        "documentationUrl": "https://github.com/b10k-nl/craft-component-check/blob/main/README.md",
+        "changelogUrl": "https://github.com/b10k-nl/craft-component-check/blob/main/CHANGELOG.md",
+        "class": "b10k\\componentcheck\\Plugin"
     },
     "scripts": {
         "test": "phpunit",

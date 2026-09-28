@@ -1,6 +1,6 @@
 <?php
 
-namespace b10k\componentregression\services;
+namespace b10k\componentcheck\services;
 
 /**
  * Decides what the plugin is allowed to do in the current environment.
@@ -64,12 +64,12 @@ final class ActivationPolicy
         $configured = strtolower(trim($configured));
 
         if (in_array($configured, self::MODES, true)) {
-            return "Mode “{$mode}”, set explicitly in config/component-regression.php.";
+            return "Mode “{$mode}”, set explicitly in config/component-check.php.";
         }
 
         return $allowAdminChanges
             ? "Mode “{$mode}”: admin changes are allowed, so this looks like development."
             : "Mode “{$mode}”: admin changes are not allowed, so this looks like production. "
-                . "Set 'mode' in config/component-regression.php (e.g. from COMPONENT_REGRESSION_MODE) to enable it on staging or in CI.";
+                . "Set 'mode' in config/component-check.php (e.g. from COMPONENT_CHECK_MODE) to enable it on staging or in CI.";
     }
 }

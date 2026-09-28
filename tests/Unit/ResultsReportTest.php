@@ -1,8 +1,8 @@
 <?php
 
-namespace b10k\componentregression\tests\Unit;
+namespace b10k\componentcheck\tests\Unit;
 
-use b10k\componentregression\services\ResultsReport;
+use b10k\componentcheck\services\ResultsReport;
 use PHPUnit\Framework\TestCase;
 
 class ResultsReportTest extends TestCase

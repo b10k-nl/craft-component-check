@@ -11,7 +11,7 @@ import { loadPlaywright } from '../lib/playwright.mjs';
 import { runManifest } from '../lib/runner.mjs';
 
 const TOKEN = 'test-token';
-const HEADER = 'X-Component-Regression';
+const HEADER = 'X-Component-Check';
 
 let server;
 let baseUrl;
@@ -30,12 +30,12 @@ function layout(req, body) {
 
 const pages = {
   '/': (m) => `
-    ${m('<!--cr:start hero 1-->')}<section class="hero"><h1>Welcome</h1></section>${m('<!--cr:end 1-->')}
-    <section ${m('data-cr-component="cards" data-cr-block="7"')}><p>Cards</p></section>`,
+    ${m('<!--cc:start hero 1-->')}<section class="hero"><h1>Welcome</h1></section>${m('<!--cc:end 1-->')}
+    <section ${m('data-cc-component="cards" data-cc-block="7"')}><p>Cards</p></section>`,
   '/about': (m) => `
-    ${m('<!--cr:start hero 2-->')}<section class="hero"><div style="width:800px;max-width:none">Wide hero</div></section>${m('<!--cr:end 2-->')}`,
-  '/missing': (m) => `${m('<!--cr:start hero 3-->')}<section>Only three</section>${m('<!--cr:end 3-->')}`,
-  '/js': (m) => `${m('<!--cr:start hero 4-->')}<section>JS</section>${m('<!--cr:end 4-->')}<script>undefinedFunction()</script>`,
+    ${m('<!--cc:start hero 2-->')}<section class="hero"><div style="width:800px;max-width:none">Wide hero</div></section>${m('<!--cc:end 2-->')}`,
+  '/missing': (m) => `${m('<!--cc:start hero 3-->')}<section>Only three</section>${m('<!--cc:end 3-->')}`,
+  '/js': (m) => `${m('<!--cc:start hero 4-->')}<section>JS</section>${m('<!--cc:end 4-->')}<script>undefinedFunction()</script>`,
 };
 
 before(async () => {
@@ -64,7 +64,7 @@ before(async () => {
   });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   baseUrl = `http://127.0.0.1:${server.address().port}`;
-  outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cr-runner-'));
+  outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cc-runner-'));
 });
 
 after(() => {

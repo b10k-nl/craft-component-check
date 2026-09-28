@@ -1,8 +1,8 @@
 <?php
 
-namespace b10k\componentregression\services;
+namespace b10k\componentcheck\services;
 
-use b10k\componentregression\Plugin;
+use b10k\componentcheck\Plugin;
 use Craft;
 use yii\base\Component;
 use craft\base\ElementInterface;

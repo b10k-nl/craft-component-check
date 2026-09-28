@@ -1,8 +1,8 @@
 <?php
 
-namespace b10k\componentregression\tests\Unit;
+namespace b10k\componentcheck\tests\Unit;
 
-use b10k\componentregression\services\MarkerToken;
+use b10k\componentcheck\services\MarkerToken;
 use PHPUnit\Framework\TestCase;
 
 class MarkerTokenTest extends TestCase

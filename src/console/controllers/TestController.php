@@ -1,18 +1,18 @@
 <?php
 
-namespace b10k\componentregression\console\controllers;
+namespace b10k\componentcheck\console\controllers;
 
-use b10k\componentregression\services\ActivationPolicy;
-use b10k\componentregression\services\ResultsReport;
+use b10k\componentcheck\services\ActivationPolicy;
+use b10k\componentcheck\services\ResultsReport;
 use craft\helpers\Console;
 
 /**
  * Runs browser checks on the pages where components are actually used.
  *
- *     php craft component-regression/test
- *     php craft component-regression/test hero
- *     php craft component-regression/test hero,cards --viewport=mobile
- *     php craft component-regression/test --json
+ *     php craft component-check/test
+ *     php craft component-check/test hero
+ *     php craft component-check/test hero,cards --viewport=mobile
+ *     php craft component-check/test --json
  *
  * Exit codes: 0 passed, 1 regressions found, 2 could not run.
  */
@@ -66,7 +66,7 @@ class TestController extends BaseController
         $manifest = $runner->manifest($samples, $only, $viewports, true);
 
         if ($manifest['pages'] === []) {
-            return $this->error('Nothing to test: no component is used on a live page. Run `php craft component-regression/discover`.');
+            return $this->error('Nothing to test: no component is used on a live page. Run `php craft component-check/discover`.');
         }
 
         if (!$this->json) {

@@ -1,6 +1,6 @@
 <?php
 
-namespace b10k\componentregression\services;
+namespace b10k\componentcheck\services;
 
 /**
  * Formats the markers that tell the browser where a component starts and ends.
@@ -9,18 +9,18 @@ namespace b10k\componentregression\services;
  *
  * - Comments, for dispatchers — wrap the include, touch no component:
  *
- *       {{ craft.regression.start(block) }}
+ *       {{ craft.componentCheck.start(block) }}
  *       {% include '_blocks/' ~ block.type.handle %}
- *       {{ craft.regression.end() }}
+ *       {{ craft.componentCheck.end() }}
  *
- *   renders `<!--cr:start hero 123-->…<!--cr:end 123-->`. The runner treats
+ *   renders `<!--cc:start hero 123-->…<!--cc:end 123-->`. The runner treats
  *   every element between the two comments as the component.
  *
  * - Attributes, on the component's root element:
  *
- *       <section {{ craft.regression.attributes(block) }}>
+ *       <section {{ craft.componentCheck.attributes(block) }}>
  *
- *   renders `data-cr-component="hero" data-cr-block="123"`.
+ *   renders `data-cc-component="hero" data-cc-block="123"`.
  *
  * Comments nest (a card block inside a cards-grid block): `end()` closes the
  * most recent `start()`, so it never needs an argument.
@@ -35,19 +35,19 @@ final class MarkerRenderer
     public function start(string $component, int $blockId): string
     {
         $this->stack[] = $blockId;
-        return sprintf('<!--cr:start %s %d-->', self::handle($component), $blockId);
+        return sprintf('<!--cc:start %s %d-->', self::handle($component), $blockId);
     }
 
     public function end(): string
     {
         $blockId = array_pop($this->stack);
-        return $blockId === null ? '' : sprintf('<!--cr:end %d-->', $blockId);
+        return $blockId === null ? '' : sprintf('<!--cc:end %d-->', $blockId);
     }
 
     public function attributes(string $component, int $blockId): string
     {
         return sprintf(
-            'data-cr-component="%s" data-cr-block="%d"',
+            'data-cc-component="%s" data-cc-block="%d"',
             htmlspecialchars(self::handle($component), ENT_QUOTES),
             $blockId,
         );
