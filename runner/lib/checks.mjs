@@ -139,6 +139,19 @@ export function buildChecks(observed, expected, options = {}) {
           : check('component-overflow', PASSED, 'Fits the viewport', component, blockId),
       );
 
+      const clipped = region.clippedText || [];
+      checks.push(
+        clipped.length === 0
+          ? check('component-clipped', PASSED, 'No text cut off', component, blockId)
+          : check(
+              'component-clipped',
+              FAILED,
+              `Text in block #${blockId} is cut off by ${clipped[0].px}px: “${clipped[0].text}”${clipped.length > 1 ? ` (+${clipped.length - 1} more)` : ''}`,
+              component,
+              blockId,
+            ),
+      );
+
       const broken = region.brokenImages || [];
       checks.push(
         broken.length === 0
