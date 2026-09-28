@@ -199,7 +199,7 @@ test('real browser: a snapshot turns "is this bad?" into "what changed?"', async
   const msg = mobile.checks.find((c) => c.check === 'component-changed').message;
   assert.match(msg, /h1 “Fitting, coaching/);
   assert.match(msg, /now cut off by \d+px/);
-  assert.match(msg, /color rgb\(\d+, \d+, \d+\) → rgb\(200, 0, 0\)/);
+  assert.match(msg, /color #[0-9a-f]{6} → #c80000/);
   const shot = mobile.artifacts.components[0];
   assert.ok(fs.existsSync(shot.path), 'after screenshot');
   assert.ok(shot.before && fs.existsSync(shot.before), 'before screenshot linked');

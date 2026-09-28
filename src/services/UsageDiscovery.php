@@ -152,7 +152,7 @@ class UsageDiscovery extends Component
             field: $field->handle,
             blockId: (int)$block->id,
             pageId: (int)$page->id,
-            pageTitle: (string)($page->title ?? $url),
+            pageTitle: self::pageTitle($page, $url),
             url: $url,
             site: $page->getSite()->handle,
             section: $page instanceof Entry ? ($page->getSection()->handle ?? '') : $page::refHandle() ?? '',
@@ -161,6 +161,25 @@ class UsageDiscovery extends Component
             variant: $this->variant($block),
             blockUpdated: $block->dateUpdated?->format(DATE_ATOM) ?? '',
         );
+    }
+
+    /**
+     * A single often has no title of its own (or hides its title field); the
+     * section name is what people call it: “Home”.
+     */
+    private static function pageTitle(ElementInterface $page, string $url): string
+    {
+        $title = trim((string)($page->title ?? ''));
+        if ($title !== '') {
+            return $title;
+        }
+        if ($page instanceof Entry) {
+            $section = $page->getSection();
+            if ($section !== null && $section->name !== '') {
+                return $section->name;
+            }
+        }
+        return $url;
     }
 
     private function owner(NestedElementInterface $element): ?ElementInterface
