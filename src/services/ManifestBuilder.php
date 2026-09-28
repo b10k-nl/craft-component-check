@@ -29,6 +29,7 @@ final class ManifestBuilder
      *     ignoreErrors: string[],
      *     blockRequests: string[],
      *     ignoreHttpsErrors: bool,
+     *     tolerance?: int,
      * } $options
      * @return array<string, mixed>
      */
@@ -47,7 +48,7 @@ final class ManifestBuilder
         }
 
         $components = [];
-        /** @var array<string, array{url: string, title: string, site: string, components: array<string, int[]>}> $pages */
+        /** @var array<string, array{url: string, title: string, site: string, components: array<string, int[]>, blocks: array<int, array{updated: ?string}>}> $pages */
         $pages = [];
 
         foreach ($samples as $handle => $sample) {
@@ -67,8 +68,13 @@ final class ManifestBuilder
                     'title' => $page['title'],
                     'site' => $page['site'],
                     'components' => [],
+                    'blocks' => [],
                 ];
                 $pages[$url]['components'][$handle] = $page['blockIds'];
+                foreach ($page['blockIds'] as $id) {
+                    $updated = $page['updated'][$id] ?? '';
+                    $pages[$url]['blocks'][$id] = ['updated' => $updated === '' ? null : $updated];
+                }
             }
         }
 
@@ -77,6 +83,7 @@ final class ManifestBuilder
         $i = 0;
         foreach ($pages as $page) {
             ksort($page['components']);
+            ksort($page['blocks']);
             $list[] = ['id' => 'p' . (++$i)] + $page;
         }
 
@@ -99,6 +106,7 @@ final class ManifestBuilder
                 'ignoreErrors' => array_values($options['ignoreErrors']),
                 'blockRequests' => array_values($options['blockRequests']),
                 'ignoreHttpsErrors' => $options['ignoreHttpsErrors'],
+                'tolerance' => $options['tolerance'] ?? 2,
             ],
             'components' => $components,
             'pages' => $list,

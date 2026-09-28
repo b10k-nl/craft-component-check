@@ -159,6 +159,7 @@ class UsageDiscovery extends Component
             pageType: $page instanceof Entry ? $page->getType()->handle : '',
             depth: $depth,
             variant: $this->variant($block),
+            blockUpdated: $block->dateUpdated?->format(DATE_ATOM) ?? '',
         );
     }
 

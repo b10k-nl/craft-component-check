@@ -146,6 +146,7 @@ export function collectLayout(blockIds) {
     // intentional and ignored; only text straddling the edge counts.
     const clippedText = [];
     const seen = new Set();
+    const clipByElement = new Map();
     for (const el of elements) {
       const texts = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
       for (let t = texts.nextNode(); t; t = texts.nextNode()) {
@@ -177,12 +178,57 @@ export function collectLayout(blockIds) {
         const cut = Math.round(Math.max(0, tr.right - visRight, visLeft - tr.left));
         if (cut > 1) {
           seen.add(parent);
+          clipByElement.set(parent, cut);
           const snippet = (parent.textContent || '').trim().replace(/\s+/g, ' ');
           clippedText.push({ px: cut, text: snippet.length > 40 ? snippet.slice(0, 39) + '…' : snippet });
         }
       }
     }
     clippedText.sort((a, b) => b.px - a.px);
+
+    // Geometry snapshot: every rendered element of the block, positioned
+    // relative to the block, with the bits of style that a template or CSS
+    // change typically moves. Compared against a snapshot taken before a
+    // change (see diff.mjs), this answers "what changed?" without guessing
+    // what the designer intended.
+    const nodes = [];
+    const SKIP = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE', 'LINK', 'META']);
+    const MAX_NODES = 400;
+    const walk = (el, pathKey) => {
+      if (nodes.length >= MAX_NODES || SKIP.has(el.tagName)) return;
+      const st = getComputedStyle(el);
+      if (st.display === 'none') return;
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) {
+        let own = '';
+        for (const c of el.childNodes) if (c.nodeType === 3) own += c.nodeValue;
+        own = own.trim().replace(/\s+/g, ' ');
+        const node = {
+          path: pathKey,
+          tag: el.tagName.toLowerCase(),
+          x: Math.round(r.left - minLeft),
+          y: Math.round(r.top - top),
+          w: Math.round(r.width),
+          h: Math.round(r.height),
+          text: own.slice(0, 120),
+          hidden: st.visibility === 'hidden' || st.opacity === '0',
+          color: st.color,
+          bg: st.backgroundColor,
+          font: `${st.fontWeight} ${st.fontSize}`,
+          clipped: clipByElement.get(el) || 0,
+        };
+        if (el.tagName === 'IMG') node.img = el.naturalWidth > 0 ? 'ok' : el.complete ? 'broken' : 'loading';
+        nodes.push(node);
+      }
+      if (el.tagName === 'svg' || el.tagName === 'SVG') return;
+      const counts = {};
+      for (const c of el.children) {
+        const t = c.tagName.toLowerCase();
+        counts[t] = (counts[t] || 0) + 1;
+        walk(c, `${pathKey}/${t}[${counts[t]}]`);
+      }
+    };
+    elements.forEach((root, i) => walk(root, `${i}:${root.tagName.toLowerCase()}`));
 
     return {
       blockId,
@@ -192,6 +238,13 @@ export function collectLayout(blockIds) {
       height,
       overflow,
       brokenImages,
+      geometry: {
+        width: Math.round(maxRight - minLeft),
+        height,
+        overflow,
+        truncated: nodes.length >= MAX_NODES,
+        nodes,
+      },
       // Document coordinates, for a clipped full-page screenshot. Widened to
       // include whatever sticks out, so the screenshot shows the problem.
       rect: hasBox ? { x: minLeft + scrollX, y: top + scrollY, width: maxRight - minLeft, height: bottom - top } : null,

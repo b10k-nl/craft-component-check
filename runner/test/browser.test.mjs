@@ -13,6 +13,7 @@ import { runManifest } from '../lib/runner.mjs';
 const TOKEN = 'test-token';
 const HEADER = 'X-Component-Check';
 
+const state = { heroChanged: false };
 let server;
 let baseUrl;
 let loaded;
@@ -42,6 +43,14 @@ const pages = {
       <div style="padding:40px;max-width:672px"><h1 style="width:1200px;font-size:48px">Ride further, feel stronger, every single week</h1></div>
       <div style="display:flex;width:300%"><div style="width:33%">Slide one</div><div style="width:33%;transform:translateX(200%)">Slide two far away</div></div>
     </section>${m('<!--cc:end 6-->')}`,
+  // Before/after: the same hero, changed by "a template edit" between runs.
+  '/snap': (m) => `
+    ${m('<!--cc:start hero 8-->')}<section style="overflow:hidden">
+      <div style="padding:20px;max-width:672px">
+        <h1 style="${state.heroChanged ? 'width:1200px;color:rgb(200,0,0)' : ''}">Fitting, coaching and servicing in one place</h1>
+        <p>Book a session</p>
+      </div>
+    </section>${m('<!--cc:end 8-->')}`,
   '/missing': (m) => `${m('<!--cc:start hero 3-->')}<section>Only three</section>${m('<!--cc:end 3-->')}`,
   '/js': (m) => `${m('<!--cc:start hero 4-->')}<section>JS</section>${m('<!--cc:end 4-->')}<script>undefinedFunction()</script>`,
 };
@@ -106,6 +115,7 @@ function manifest(markers = true) {
 
 const find = (results, pageId, viewport) => results.runs.find((r) => r.pageId === pageId && r.viewport === viewport);
 const failed = (run) => run.checks.filter((c) => c.status === 'failed').map((c) => `${c.check}:${c.blockId ?? ''}`);
+const warned = (run) => run.checks.filter((c) => c.status === 'warning').map((c) => `${c.check}:${c.blockId ?? ''}`);
 
 test('real browser: finds components, catches mobile overflow, JS errors and HTTP errors', async (t) => {
   if (!loaded) return t.skip('playwright/chromium not installed');
@@ -127,17 +137,15 @@ test('real browser: finds components, catches mobile overflow, JS errors and HTT
   // About: fine on desktop, 800px child overflows a 390px viewport.
   assert.deepEqual(failed(find(results, 'p2', 'desktop')), []);
   const aboutMobile = find(results, 'p2', 'mobile');
-  assert.deepEqual(failed(aboutMobile), ['component-overflow:2']);
-  assert.equal(aboutMobile.artifacts.components.length, 1);
-  assert.ok(fs.existsSync(aboutMobile.artifacts.components[0].path), 'component screenshot written');
-  assert.ok(fs.existsSync(aboutMobile.artifacts.trace), 'trace written');
+  assert.deepEqual(failed(aboutMobile), [], 'layout heuristics warn, they do not fail');
+  assert.ok(warned(aboutMobile).includes('component-overflow:2'));
 
   // Missing: block 30 exists in content but not in the page.
   assert.deepEqual(failed(find(results, 'p3', 'desktop')), ['component-present:30']);
 
   // Clipped heading: invisible to the overflow check, caught on mobile.
   const clipMobile = find(results, 'p6', 'mobile');
-  assert.deepEqual(failed(clipMobile), ['component-clipped:6']);
+  assert.ok(warned(clipMobile).includes('component-clipped:6'));
   assert.match(clipMobile.checks.find((c) => c.check === 'component-clipped').message, /Ride further/);
   assert.doesNotMatch(clipMobile.checks.find((c) => c.check === 'component-clipped').message, /Slide two/);
 
@@ -158,4 +166,51 @@ test('real browser: without a token there are no markers, so component checks sk
   const home = find(results, 'p1', 'desktop');
   assert.ok(home.checks.filter((c) => c.component).every((c) => c.status === 'skipped'));
   assert.equal(home.status, 'passed');
+});
+
+test('real browser: a snapshot turns "is this bad?" into "what changed?"', async (t) => {
+  if (!loaded) return t.skip('playwright/chromium not installed');
+
+  const snapDir = path.join(outputDir, 'snapshot');
+  const m = manifest();
+  m.pages = [{
+    id: 's1', url: `${baseUrl}/snap`, title: 'Snap', components: { hero: [8] },
+    blocks: { 8: { updated: '2026-09-01T10:00:00+00:00' } },
+  }];
+
+  // 1. Record.
+  state.heroChanged = false;
+  const recorded = await runManifest({ ...m, snapshot: { action: 'record', dir: snapDir } }, { playwright: loaded.playwright });
+  assert.equal(recorded.snapshot.recorded, 2);
+  assert.ok(fs.existsSync(path.join(snapDir, 'index.json')));
+  assert.ok(fs.existsSync(path.join(snapDir, 'mobile', '8.png')));
+
+  // 2. Nothing changed → passes, and says so.
+  const same = await runManifest({ ...m, snapshot: { action: 'compare', dir: snapDir } }, { playwright: loaded.playwright });
+  for (const run of same.runs) {
+    assert.equal(run.checks.find((c) => c.check === 'component-changed').status, 'passed', run.viewport);
+  }
+
+  // 3. "Template edit": wider, red heading, now cut off on mobile.
+  state.heroChanged = true;
+  const changed = await runManifest({ ...m, snapshot: { action: 'compare', dir: snapDir } }, { playwright: loaded.playwright });
+  const mobile = find(changed, 's1', 'mobile');
+  assert.deepEqual(failed(mobile), ['component-changed:8']);
+  const msg = mobile.checks.find((c) => c.check === 'component-changed').message;
+  assert.match(msg, /h1 “Fitting, coaching/);
+  assert.match(msg, /now cut off by \d+px/);
+  assert.match(msg, /color rgb\(\d+, \d+, \d+\) → rgb\(200, 0, 0\)/);
+  const shot = mobile.artifacts.components[0];
+  assert.ok(fs.existsSync(shot.path), 'after screenshot');
+  assert.ok(shot.before && fs.existsSync(shot.before), 'before screenshot linked');
+
+  // 4. An editor changed the block's content → not compared, just noted.
+  const edited = structuredClone(m);
+  edited.pages[0].blocks[8].updated = '2026-09-28T09:00:00+00:00';
+  const afterEdit = await runManifest({ ...edited, snapshot: { action: 'compare', dir: snapDir } }, { playwright: loaded.playwright });
+  const c = find(afterEdit, 's1', 'mobile').checks.find((x) => x.check === 'component-changed');
+  assert.equal(c.status, 'warning');
+  assert.match(c.message, /edited after the snapshot/);
+
+  state.heroChanged = false;
 });

@@ -6,18 +6,20 @@ testing, and runs desktop and mobile browser checks on them with Playwright —
 without a single test file.
 
 ```
+$ php craft component-check/snapshot hero       # before the change
+$ # …edit _blocks/hero.twig…
 $ php craft component-check/test hero
 
 Hero (hero)
-  Home                             desktop ✓   mobile ✓
+  Home                             desktop ✓   mobile ✕
     /
-  About                            desktop ✓   mobile ✕
-    /about
-      ✕ mobile: Block #1823 is 318px wider than the viewport
-        screenshot: storage/component-check/latest/screenshots/hero/p2-mobile-1823.png
-        trace:      storage/component-check/latest/traces/p2-mobile.zip
+      ✕ mobile: Changed since snapshot: h1 “Fitting, coaching and servici…”:
+        width 334→1200px, now cut off by 235px; p “Book”: moved 0, -37px
+        screenshot: storage/component-check/latest/screenshots/hero/p1-mobile-123.png
+        before:     storage/component-check/snapshot/mobile/123.png
+        trace:      storage/component-check/latest/traces/p1-mobile.zip
 
-FAILED — 3 passed, 1 failed, 0 skipped
+FAILED — 1 passed, 1 failed, 0 skipped
 ```
 
 It is not a replacement for Playwright, Pest or Craft Pest. Playwright does the
@@ -42,13 +44,60 @@ Matrix fields ─► every block on a live page ─► representative pages ─�
    site and the same set of filled-in fields (plus the value of dropdowns,
    radio buttons and lightswitches). Pages are chosen so every variant is
    covered with as few pages as possible. 3,000 identical Heroes → one page.
-3. **Browser checks**, on every viewport:
-   - the page responds (no 4xx/5xx), no uncaught JavaScript errors, no failed
-     scripts or stylesheets, no sideways scrolling;
-   - with markers (below): every block Craft says is on the page is rendered,
-     has a size, fits the viewport, and its images load.
-4. **Artifacts** for every failure: a screenshot of the failing component (not
-   the whole page), and a Playwright trace.
+3. **Browser checks**, on every viewport — see [What fails, what warns](#what-fails-what-warns).
+4. **Before/after**, if you took a snapshot: every block is compared with how
+   it looked before your change.
+5. **Artifacts** for every failure: a screenshot of the failing component (not
+   the whole page), the snapshot's screenshot next to it, and a Playwright
+   trace.
+
+## What fails, what warns
+
+A plugin cannot know what the designer intended. A heading cut off by
+`overflow: hidden` is a bug on one site and the design on another. So there are
+two kinds of verdict:
+
+**Failures** — wrong whatever the intent:
+
+- the page answers 4xx/5xx, throws an uncaught JavaScript error, or fails to
+  load a script or stylesheet;
+- a block that is in the content is not on the page, or renders with no size;
+- an image in a block does not load;
+- **a block changed since the snapshot** (below).
+
+**Warnings** — often a bug, sometimes the design; they never fail a run:
+
+- the page scrolls sideways;
+- a block is wider than the viewport;
+- text in a block is cut off by an `overflow: hidden` ancestor.
+
+## Before and after: snapshots
+
+The question a regression test really asks is not *“is this bad?”* but *“did
+my change change this?”* — and that one needs no guessing:
+
+```bash
+php craft component-check/snapshot hero     # how the Hero blocks look now
+# …change the template or CSS…
+php craft component-check/test hero         # what changed since
+```
+
+A snapshot records, per block and viewport, its geometry (every element's
+size and position within the block, its text, colour, background, font, and
+whether it is cut off) and a screenshot. `test` then reports changes in words —
+`h1 “…”: width 334→1200px, now cut off by 235px` — above the pixel tolerance
+(`tolerance`, 2px). Movement is measured relative to the parent, so a
+container that moves does not report every child as moved.
+
+- **Content edits are not regressions.** Craft knows when each block was last
+  saved. If an editor changed a block after the snapshot, it is not compared
+  — `test` says so instead of flagging it.
+- **Local by design.** Snapshots live in `storage/component-check/snapshot/`,
+  for this machine and this database. Nothing is committed. `snapshot hero`
+  keeps the snapshots of other components; `--reset` starts over.
+- **No snapshot, no comparison:** `test` then checks for errors only.
+  `--no-snapshot` skips the comparison on purpose.
+- Needs mode `full` (blocks are found by their markers).
 
 ## Requirements
 
@@ -112,7 +161,8 @@ Markers nest (a card inside a cards grid); `end()` closes the most recent
 | Command | What it does | Needs mode |
 |---|---|---|
 | `component-check/discover [components]` | Where each component is used and which pages would be tested. `--all` lists every page, `--json` prints the manifest. | `readonly` |
-| `component-check/test [components]` | Runs the browser checks. `--viewport=mobile`, `--json`, `--headed`. | `readonly` (page checks) / `full` (component checks) |
+| `component-check/snapshot [components]` | Records how blocks look now, for the next `test` to compare against. `--reset`, `--viewport`, `--json`. | `full` |
+| `component-check/test [components]` | Runs the browser checks, and compares with the snapshot if there is one. `--viewport=mobile`, `--no-snapshot`, `--json`, `--headed`. | `readonly` (page checks) / `full` (component checks, snapshots) |
 | `component-check/doctor` | Checks the setup. `--json`. | any |
 
 `components` is a comma-separated list of entry type handles: `hero,cards`.
@@ -195,6 +245,7 @@ Copy `vendor/b10k/craft-component-check/src/config.php` to
 | `blockRequests` | GTM, GA, Facebook, Hotjar | Blocked in the browser |
 | `outputPath` | `@storage/component-check` | Artifacts go to `…/latest/` |
 | `concurrency` | `4` | Pages in parallel |
+| `tolerance` | `2` | Pixels an element may move or resize before a snapshot comparison reports it |
 
 ## CI
 
@@ -215,9 +266,9 @@ use a recent content snapshot.
 
 ## Coding agents
 
-The loop this plugin is built for: change a component, run
-`test <component> --json`, read the failure, look at the screenshot and the
-trace, fix, run again. See [AGENTS.md](AGENTS.md) for the recipe to hand your
+The loop this plugin is built for: `snapshot <component>`, change it, run
+`test <component> --json`, read what changed, look at the before/after
+screenshots, fix or accept, run again. See [AGENTS.md](AGENTS.md) for the recipe to hand your
 agent.
 
 ## Limitations (v0.1)
@@ -225,8 +276,11 @@ agent.
 - **Matrix only.** Neo, Super Table and custom page builders are not discovered
   yet.
 - **Chromium only.**
-- **No visual diffing.** Checks catch broken layouts, not a changed shade of
-  blue. Baseline screenshots are next on the list.
+- **Snapshots compare geometry and computed style, not pixels.** A changed
+  colour, font or size is caught; a changed background image or icon is not.
+  The before/after screenshots are there for a human (or an agent) to look at.
+- **Snapshots are local.** Shared baselines for a team or CI are not there
+  yet.
 - **Static caches.** Blitz and similar serve HTML before Craft runs, so marker
   requests may get the cached copy without markers. Exclude the test run (or
   disable the static cache) in environments where you test.

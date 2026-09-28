@@ -25,5 +25,14 @@ First working draft.
   output directory, site reachability and marker usage.
 - Twig markers — `craft.componentCheck.start(block)` / `end()` and
   `craft.componentCheck.attributes(block)` — rendered only for signed test requests.
+- `component-check/snapshot` and before/after comparison in `test`: per block
+  and viewport, geometry and computed style are recorded and compared, and
+  changes are reported in words (“h1: width 334→1200px, now cut off by
+  235px”), with before/after screenshots. Blocks whose content was edited
+  after the snapshot are not compared. Snapshots are local
+  (`storage/component-check/snapshot`).
+- Layout heuristics — sideways scrolling, overflow, text cut off by
+  `overflow: hidden` — are warnings, not failures: they cannot know what the
+  design intends. A change against a snapshot fails instead.
 - Modes `off` / `readonly` / `full`, following `allowAdminChanges` unless set
   explicitly (`COMPONENT_CHECK_MODE`).

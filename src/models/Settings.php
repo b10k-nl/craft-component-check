@@ -95,6 +95,12 @@ class Settings extends Model
     public int $concurrency = 4;
 
     /**
+     * @var int Pixels an element may move or resize before a comparison
+     * against a snapshot reports it (absorbs sub-pixel rendering noise).
+     */
+    public int $tolerance = 2;
+
+    /**
      * @var bool Accept self-signed certificates (DDEV, Valet, Herd).
      */
     public bool $ignoreHttpsErrors = true;
@@ -113,6 +119,7 @@ class Settings extends Model
             ['mode', 'in', 'range' => ['', ...ActivationPolicy::MODES]],
             [['samplesPerVariant', 'maxPagesPerComponent', 'concurrency'], 'integer', 'min' => 1],
             ['timeout', 'integer', 'min' => 1000],
+            ['tolerance', 'integer', 'min' => 0],
             ['ignoreHttpsErrors', 'boolean'],
             [['baseUrl', 'outputPath', 'nodeBinary'], 'trim'],
             ['viewports', 'validateViewports'],

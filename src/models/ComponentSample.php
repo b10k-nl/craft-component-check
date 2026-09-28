@@ -9,7 +9,7 @@ namespace b10k\componentcheck\models;
 final class ComponentSample
 {
     /**
-     * @param array<int, array{url: string, title: string, pageId: int, site: string, blockIds: int[], variants: string[]}> $pages
+     * @param array<int, array{url: string, title: string, pageId: int, site: string, blockIds: int[], variants: string[], updated: array<int, string>}> $pages
      * @param string[] $uncoveredVariants Variant keys no selected page contains
      *        (only non-empty when `maxPagesPerComponent` cut the selection short).
      */

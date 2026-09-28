@@ -108,6 +108,11 @@ final class Sampler
             $first = $pageUsages[0];
             $blockIds = array_values(array_unique(array_map(static fn(Usage $u) => $u->blockId, $pageUsages)));
             sort($blockIds);
+            $updated = [];
+            foreach ($pageUsages as $u) {
+                $updated[$u->blockId] = $u->blockUpdated;
+            }
+            ksort($updated);
             $variants = array_keys($variantsByUrl[$url]);
             sort($variants);
             foreach ($variants as $key) {
@@ -120,6 +125,7 @@ final class Sampler
                 'site' => $first->site,
                 'blockIds' => $blockIds,
                 'variants' => $variants,
+                'updated' => $updated,
             ];
         }
 

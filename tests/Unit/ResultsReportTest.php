@@ -118,6 +118,43 @@ class ResultsReportTest extends TestCase
         $this->assertSame('passed', $about[0]['status']);
     }
 
+    public function testWarningsDoNotFailAndPageWarningsAreListedOnce(): void
+    {
+        $results = ['runs' => [
+            self::pageRun('p1', 'mobile', [
+                ['check' => 'console-errors', 'component' => null, 'status' => 'warning', 'message' => 'console.error: x'],
+                ['check' => 'component-clipped', 'component' => 'hero', 'blockId' => 1, 'status' => 'warning', 'message' => 'Text cut off by 288px'],
+            ]),
+        ]];
+
+        $report = new ResultsReport($this->manifest(), $results);
+        $json = $report->toArray();
+
+        $this->assertSame('passed', $report->status());
+        $this->assertSame(0, $json['failed']);
+        $messages = array_column($json['warnings'], 'message');
+        $this->assertSame(['console.error: x', 'Text cut off by 288px'], $messages, 'page warning once, on the first component');
+        $this->assertStringContainsString('⚠ mobile: Text cut off by 288px', implode("\n", $report->toLines()));
+        $this->assertStringContainsString('2 warning(s)', implode("\n", $report->toLines()));
+    }
+
+    public function testSnapshotChangeLinksTheBeforeScreenshot(): void
+    {
+        $results = ['runs' => [
+            self::pageRun('p2', 'mobile', [
+                ['check' => 'component-changed', 'component' => 'hero', 'blockId' => 2, 'status' => 'failed', 'message' => 'Changed since snapshot: h1: width 350→1200px'],
+            ], [
+                'components' => [['component' => 'hero', 'blockId' => 2, 'path' => '/after.png', 'before' => '/before.png']],
+            ]),
+        ], 'snapshot' => ['action' => 'compare']];
+
+        $json = (new ResultsReport($this->manifest(), $results))->toArray();
+
+        $this->assertSame('/after.png', $json['failures'][0]['screenshot']);
+        $this->assertSame('/before.png', $json['failures'][0]['before']);
+        $this->assertSame(['action' => 'compare'], $json['snapshot']);
+    }
+
     public function testTextReport(): void
     {
         $results = ['runs' => [
