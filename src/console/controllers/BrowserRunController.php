@@ -27,7 +27,7 @@ abstract class BrowserRunController extends BaseController
      * @return array<string, mixed>|int The manifest, or an exit code after
      *         reporting the problem.
      */
-    protected function prepareManifest(string $components): array|int
+    protected function prepareManifest(string $components, int $tokenTtl = 3600): array|int
     {
         $plugin = $this->plugin();
         $runner = $plugin->getTestRunner();
@@ -50,7 +50,7 @@ abstract class BrowserRunController extends BaseController
             );
         }
 
-        $manifest = $runner->manifest($samples, $only, $viewports, true);
+        $manifest = $runner->manifest($samples, $only, $viewports, true, $tokenTtl);
 
         if ($manifest['pages'] === []) {
             return $this->error('Nothing to test: no component is used on a live page. Run `php craft component-check/discover`.');

@@ -56,5 +56,11 @@ return [
     // Pixels an element may move or resize before a snapshot comparison
     // reports it.
     'tolerance' => 2,
+
+    // watch: what to watch (directories or aliases), folder names to skip,
+    // and how often to look for changes (ms).
+    'watchPaths' => ['@templates', '@webroot'],
+    'watchIgnore' => ['cpresources', 'node_modules', 'uploads', 'assets'],
+    'watchInterval' => 700,
     'ignoreHttpsErrors' => true,
 ];

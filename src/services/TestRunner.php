@@ -45,7 +45,7 @@ class TestRunner extends Component
      * @param string[]|null $viewports Names from settings; null = all.
      * @return array<string, mixed>
      */
-    public function manifest(array $samples, ?array $only, ?array $viewports, bool $withToken): array
+    public function manifest(array $samples, ?array $only, ?array $viewports, bool $withToken, int $tokenTtl = 3600): array
     {
         $plugin = Plugin::getInstance();
         $settings = $plugin->getSettings();
@@ -59,7 +59,7 @@ class TestRunner extends Component
         $token = null;
         if ($withToken && $mode === ActivationPolicy::FULL) {
             $key = Craft::$app->getConfig()->getGeneral()->securityKey;
-            $token = $key !== '' ? MarkerToken::create($key, time(), 3600) : null;
+            $token = $key !== '' ? MarkerToken::create($key, time(), $tokenTtl) : null;
         }
 
         return $plugin->getManifestBuilder()->build(
@@ -130,6 +130,58 @@ class TestRunner extends Component
             'resultsPath' => $resultsPath,
             'outputDir' => $outputDir,
         ];
+    }
+
+    /**
+     * Runs watch mode in the foreground until the developer quits. The Node
+     * process gets this terminal (stdin for its keys, stdout for its output).
+     *
+     * @param array<string, mixed> $manifest
+     * @param string[] $paths Absolute directories to watch.
+     * @param string[] $ignore Folder names to skip.
+     */
+    public function watch(array $manifest, array $paths, array $ignore, bool $keepSnapshot, bool $headed = false): int
+    {
+        $outputDir = $this->outputDir();
+        FileHelper::createDirectory($outputDir);
+        FileHelper::clearDirectory($outputDir);
+
+        $manifest['snapshot'] = ['action' => 'watch', 'dir' => $this->snapshotDir()];
+        $manifestPath = $outputDir . DIRECTORY_SEPARATOR . self::MANIFEST_FILE;
+        file_put_contents($manifestPath, Json::encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+
+        $settings = Plugin::getInstance()->getSettings();
+        $command = [
+            $settings->nodeBinary,
+            dirname(self::runnerScript()) . DIRECTORY_SEPARATOR . 'watch.mjs',
+            '--manifest', $manifestPath,
+            '--results', $outputDir . DIRECTORY_SEPARATOR . self::RESULTS_FILE,
+            '--interval', (string)$settings->watchInterval,
+        ];
+        foreach ($paths as $path) {
+            array_push($command, '--path', $path);
+        }
+        foreach ($ignore as $name) {
+            array_push($command, '--ignore', $name);
+        }
+        if ($keepSnapshot) {
+            $command[] = '--keep-snapshot';
+        }
+        if ($headed) {
+            $command[] = '--headed';
+        }
+
+        $descriptors = [
+            0 => defined('STDIN') ? STDIN : ['pipe', 'r'],
+            1 => defined('STDOUT') ? STDOUT : ['pipe', 'w'],
+            2 => defined('STDERR') ? STDERR : ['pipe', 'w'],
+        ];
+        $process = @proc_open($command, $descriptors, $pipes, (string)Craft::getAlias('@root'));
+        if (!is_resource($process)) {
+            return 127;
+        }
+
+        return proc_close($process);
     }
 
     public function outputDir(): string
