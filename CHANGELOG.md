@@ -31,6 +31,11 @@ First working draft.
   235px”), with before/after screenshots. Blocks whose content was edited
   after the snapshot are not compared. Snapshots are local
   (`storage/component-check/snapshot`).
+- `component-check/watch`: snapshots the components once, keeps a browser
+  open and re-checks them on every save, printing what changed and what got
+  fixed since the previous save. Keys: `r` run, `s` new snapshot, `q` quit.
+  Polls for changes (`watchPaths`, `watchIgnore`, `watchInterval`), so it works
+  across the DDEV mount.
 - Layout heuristics — sideways scrolling, overflow, text cut off by
   `overflow: hidden` — are warnings, not failures: they cannot know what the
   design intends. A change against a snapshot fails instead.

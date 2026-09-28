@@ -99,6 +99,43 @@ container that moves does not report every child as moved.
   `--no-snapshot` skips the comparison on purpose.
 - Needs mode `full` (blocks are found by their markers).
 
+### Watch mode
+
+For the edit–save–look loop, run this in its own terminal:
+
+```
+$ ddev craft component-check/watch hero
+
+Component Check — watching hero on 1 page(s) × 2 viewport(s)
+[10:42:05] Snapshot taken: 2 block snapshot(s) in storage/component-check/snapshot
+Watching templates, web — save a file to compare. Keys: r run · s new snapshot · q quit
+
+[10:42:13] _blocks/hero.twig changed — 1.4s
+  Hero  desktop ✓  mobile ✕
+      ✕ mobile: Changed since snapshot: h1 “Fitting, coaching…”: width 334→1200px, now cut off by 235px
+        now:    storage/component-check/latest/screenshots/hero/p1-mobile-123.png
+        before: storage/component-check/snapshot/mobile/123.png
+  ✕ 1 of 2 case(s) changed or failing
+
+[10:42:51] _blocks/hero.twig changed — 1.2s
+  Hero  desktop ✓  mobile ✓   (mobile fixed)
+  ✓ all 2 case(s) match the snapshot
+```
+
+- The snapshot taken at start is *how it was before you started*. Press `s`
+  when a change is intended and should become the new “before”.
+  `--keep-snapshot` reuses the existing snapshot instead.
+- Content is discovered once and one browser stays open, so a save is checked
+  in a second or two.
+- It polls (`watchInterval`, 700ms) rather than relying on file events, which
+  do not reliably cross the Docker mount between your machine and DDEV.
+  Only `.twig`, `.html`, `.css`, `.js`, `.mjs`, `.svg` and `.json` files count;
+  `watchIgnore` skips `cpresources`, `node_modules`, `uploads`, `assets`.
+- Watches `@templates` and `@webroot` by default (`watchPaths`, or `--paths`).
+  If your CSS is built by Vite or Tailwind, the built files in `web/` are what
+  trigger a run — keep the build watcher running too.
+- Restart it after editing content in the control panel.
+
 ## Requirements
 
 - Craft CMS 5, PHP 8.2+
@@ -162,6 +199,7 @@ Markers nest (a card inside a cards grid); `end()` closes the most recent
 |---|---|---|
 | `component-check/discover [components]` | Where each component is used and which pages would be tested. `--all` lists every page, `--json` prints the manifest. | `readonly` |
 | `component-check/snapshot [components]` | Records how blocks look now, for the next `test` to compare against. `--reset`, `--viewport`, `--json`. | `full` |
+| `component-check/watch [components]` | Snapshots once, then re-checks on every save of a template or stylesheet. Keys: `r` run, `s` new snapshot, `q` quit. `--keep-snapshot`, `--paths`, `--viewport`. | `full` |
 | `component-check/test [components]` | Runs the browser checks, and compares with the snapshot if there is one. `--viewport=mobile`, `--no-snapshot`, `--json`, `--headed`. | `readonly` (page checks) / `full` (component checks, snapshots) |
 | `component-check/doctor` | Checks the setup. `--json`. | any |
 
@@ -246,6 +284,9 @@ Copy `vendor/b10k/craft-component-check/src/config.php` to
 | `outputPath` | `@storage/component-check` | Artifacts go to `…/latest/` |
 | `concurrency` | `4` | Pages in parallel |
 | `tolerance` | `2` | Pixels an element may move or resize before a snapshot comparison reports it |
+| `watchPaths` | `@templates`, `@webroot` | What `watch` watches |
+| `watchIgnore` | `cpresources`, `node_modules`, `uploads`, `assets` | Folder names `watch` skips |
+| `watchInterval` | `700` | How often `watch` looks for changes (ms) |
 
 ## CI
 

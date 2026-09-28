@@ -101,6 +101,24 @@ class Settings extends Model
     public int $tolerance = 2;
 
     /**
+     * @var string[] What `watch` watches: directories or aliases. Only .twig,
+     * .html, .css, .js, .mjs, .svg and .json files count.
+     */
+    public array $watchPaths = ['@templates', '@webroot'];
+
+    /**
+     * @var string[] Folder names `watch` skips wherever they appear.
+     */
+    public array $watchIgnore = ['cpresources', 'node_modules', 'uploads', 'assets'];
+
+    /**
+     * @var int How often `watch` looks for changed files, in milliseconds.
+     * It polls rather than relying on file events, which do not reliably
+     * cross Docker mounts.
+     */
+    public int $watchInterval = 700;
+
+    /**
      * @var bool Accept self-signed certificates (DDEV, Valet, Herd).
      */
     public bool $ignoreHttpsErrors = true;
@@ -111,6 +129,8 @@ class Settings extends Model
         $this->fields = self::stringList($this->fields);
         $this->ignoreErrors = self::stringList($this->ignoreErrors);
         $this->blockRequests = self::stringList($this->blockRequests);
+        $this->watchPaths = self::stringList($this->watchPaths);
+        $this->watchIgnore = self::stringList($this->watchIgnore);
     }
 
     public function rules(): array
@@ -120,6 +140,7 @@ class Settings extends Model
             [['samplesPerVariant', 'maxPagesPerComponent', 'concurrency'], 'integer', 'min' => 1],
             ['timeout', 'integer', 'min' => 1000],
             ['tolerance', 'integer', 'min' => 0],
+            ['watchInterval', 'integer', 'min' => 200],
             ['ignoreHttpsErrors', 'boolean'],
             [['baseUrl', 'outputPath', 'nodeBinary'], 'trim'],
             ['viewports', 'validateViewports'],

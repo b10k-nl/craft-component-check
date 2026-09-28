@@ -61,6 +61,9 @@ template, CSS or JavaScript that affects page-builder (Matrix) blocks.
 
 ## Rules
 
+- Do not use `component-check/watch`: it is interactive and never exits. Use
+  `snapshot` + `test --json`.
+
 - Do not edit content in the control panel to make a test pass. The tests run
   against real content on purpose.
 - Do not add `ignoreErrors` or `blockRequests` entries without telling the

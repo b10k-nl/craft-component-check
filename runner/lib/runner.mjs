@@ -10,11 +10,12 @@ import { compareWithSnapshot, componentOf, loadIndex, snapshotKey, writeIndex } 
  * @param {object} manifest see ManifestBuilder.php
  * @param {object} opts
  * @param {object} opts.playwright the loaded `playwright` module
+ * @param {object} [opts.browser] an already launched browser to reuse (watch mode)
  * @param {boolean} [opts.headed]
  * @param {(line: string) => void} [opts.log]
  * @returns {Promise<object>} results (see ResultsReport.php)
  */
-export async function runManifest(manifest, { playwright, headed = false, log = () => {} }) {
+export async function runManifest(manifest, { playwright, browser: shared = null, headed = false, log = () => {} }) {
   const startedAt = new Date();
   const outputDir = manifest.outputDir;
   const options = manifest.options || {};
@@ -32,7 +33,8 @@ export async function runManifest(manifest, { playwright, headed = false, log = 
     index: snapshot?.action === 'compare' ? loadIndex(snapshot.dir) : null,
   };
 
-  const browser = await playwright.chromium.launch({ headless: !headed });
+  // `watch` keeps one browser open between runs; a one-off run owns its own.
+  const browser = shared ?? (await playwright.chromium.launch({ headless: !headed }));
   const runs = [];
 
   try {
@@ -43,7 +45,7 @@ export async function runManifest(manifest, { playwright, headed = false, log = 
       log(`${mark} ${job.viewportName.padEnd(8)} ${job.page.url}`);
     });
   } finally {
-    await browser.close();
+    if (!shared) await browser.close();
   }
 
   // Stable order regardless of concurrency.
