@@ -14,23 +14,26 @@ use craft\helpers\Console;
  *     php craft component-check/test hero,cards --viewport=mobile
  *     php craft component-check/test --json
  *
+ * If a snapshot exists (`component-check/snapshot`), every block is also
+ * compared against it and anything that changed fails.
+ *
  * Exit codes: 0 passed, 1 regressions found, 2 could not run.
  */
-class TestController extends BaseController
+class TestController extends BrowserRunController
 {
     /**
-     * @var string Comma-separated viewport names (default: all configured).
+     * @var bool Do not compare against the snapshot, even if one exists.
      */
-    public string $viewport = '';
-
-    /**
-     * @var bool Show the browser window (local debugging).
-     */
-    public bool $headed = false;
+    public bool $noSnapshot = false;
 
     public function options($actionID): array
     {
-        return array_merge(parent::options($actionID), ['viewport', 'headed']);
+        return array_merge(parent::options($actionID), ['noSnapshot']);
+    }
+
+    public function optionAliases(): array
+    {
+        return array_merge(parent::optionAliases(), ['no-snapshot' => 'noSnapshot']);
     }
 
     /**
@@ -42,41 +45,31 @@ class TestController extends BaseController
             return $refusal;
         }
 
-        $plugin = $this->plugin();
-        $runner = $plugin->getTestRunner();
-        $settings = $plugin->getSettings();
-
-        $viewports = self::list($this->viewport);
-        if ($viewports !== null && ($unknown = array_diff($viewports, array_keys($settings->viewports))) !== []) {
-            return $this->error(
-                'Unknown viewport(s): ' . implode(', ', $unknown) . '. Configured: ' . implode(', ', array_keys($settings->viewports)),
-            );
+        $manifest = $this->prepareManifest($components);
+        if (is_int($manifest)) {
+            return $manifest;
         }
 
-        ['samples' => $samples] = $runner->sample();
-
-        $only = self::list($components);
-        if ($only !== null && ($unknown = array_diff($only, array_keys($samples))) !== []) {
-            return $this->error(
-                'No usages found for: ' . implode(', ', $unknown) . '. Known components: ' . implode(', ', array_keys($samples)),
-                ['known' => array_keys($samples)],
-            );
-        }
-
-        $manifest = $runner->manifest($samples, $only, $viewports, true);
-
-        if ($manifest['pages'] === []) {
-            return $this->error('Nothing to test: no component is used on a live page. Run `php craft component-check/discover`.');
+        $runner = $this->plugin()->getTestRunner();
+        $snapshotAt = $this->noSnapshot || $manifest['markers'] === null ? null : $runner->snapshotTakenAt();
+        if ($snapshotAt !== null) {
+            $manifest['snapshot'] = ['action' => 'compare', 'dir' => $runner->snapshotDir()];
         }
 
         if (!$this->json) {
             $this->stdout(sprintf(
-                "Testing %d component(s) on %d page(s) × %d viewport(s)%s\n\n",
+                "Testing %d component(s) on %d page(s) × %d viewport(s)%s\n",
                 count($manifest['components']),
                 count($manifest['pages']),
                 count($manifest['viewports']),
                 $manifest['markers'] === null ? ' — page-level checks only (markers need mode “full”)' : '',
             ), Console::FG_GREY);
+            $this->stdout(
+                $snapshotAt !== null
+                    ? "Comparing with the snapshot from {$snapshotAt}\n\n"
+                    : "No snapshot: checking for errors only. Run component-check/snapshot before a change to compare before/after.\n\n",
+                Console::FG_GREY,
+            );
         }
 
         $run = $runner->run($manifest, $this->json, $this->headed);
@@ -93,6 +86,7 @@ class TestController extends BaseController
             foreach ($report->toLines() as $line) {
                 $color = match (true) {
                     str_contains($line, '✕'), str_starts_with($line, 'FAILED'), str_starts_with($line, 'Runner error') => Console::FG_RED,
+                    str_contains($line, '⚠') => Console::FG_YELLOW,
                     str_starts_with($line, 'PASSED') => Console::FG_GREEN,
                     default => null,
                 };

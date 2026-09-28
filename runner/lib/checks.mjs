@@ -6,6 +6,14 @@ export const FAILED = 'failed';
 export const SKIPPED = 'skipped';
 export const WARNING = 'warning';
 
+// Two kinds of verdict:
+// - FAILED for things that are wrong whatever the design intends: HTTP errors,
+//   uncaught exceptions, missing scripts/stylesheets, a block that is in the
+//   content but not on the page, a block with no size, a broken image.
+// - WARNING for layout heuristics (sideways scrolling, overflow, cut-off
+//   text): often a bug, sometimes the design. They never fail a run on their
+//   own; a change against a snapshot does (see snapshot.mjs).
+
 /** Resource types whose failure means the page did not load as intended. */
 export const CRITICAL_RESOURCES = new Set(['document', 'script', 'stylesheet']);
 
@@ -88,7 +96,7 @@ export function buildChecks(observed, expected, options = {}) {
     checks.push(
       overflowing.length > 0
         ? check('page-overflow', WARNING, `Page scrolls sideways by ${layout.pageOverflow}px (caused by a component below)`)
-        : check('page-overflow', FAILED, `Page scrolls sideways by ${layout.pageOverflow}px`),
+        : check('page-overflow', WARNING, `Page scrolls sideways by ${layout.pageOverflow}px`),
     );
   } else {
     checks.push(check('page-overflow', PASSED, 'No horizontal scrolling'));
@@ -135,7 +143,7 @@ export function buildChecks(observed, expected, options = {}) {
 
       checks.push(
         region.overflow > OVERFLOW_TOLERANCE
-          ? check('component-overflow', FAILED, `Block #${blockId} is ${region.overflow}px wider than the viewport`, component, blockId)
+          ? check('component-overflow', WARNING, `Block #${blockId} is ${region.overflow}px wider than the viewport`, component, blockId)
           : check('component-overflow', PASSED, 'Fits the viewport', component, blockId),
       );
 
@@ -145,7 +153,7 @@ export function buildChecks(observed, expected, options = {}) {
           ? check('component-clipped', PASSED, 'No text cut off', component, blockId)
           : check(
               'component-clipped',
-              FAILED,
+              WARNING,
               `Text in block #${blockId} is cut off by ${clipped[0].px}px: “${clipped[0].text}”${clipped.length > 1 ? ` (+${clipped.length - 1} more)` : ''}`,
               component,
               blockId,

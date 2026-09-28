@@ -52,5 +52,9 @@ return [
     'nodeBinary' => 'node',
     'timeout' => 30000,
     'concurrency' => 4,
+
+    // Pixels an element may move or resize before a snapshot comparison
+    // reports it.
+    'tolerance' => 2,
     'ignoreHttpsErrors' => true,
 ];

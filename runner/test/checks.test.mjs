@@ -60,21 +60,22 @@ test('only critical requests fail the page', () => {
   assert.match(byId(css, 'requests').message, /app\.css/);
 });
 
-test('component overflow blames the component, not the page', () => {
+test('component overflow warns on the component, not the page', () => {
   const observed = ok();
   observed.layout.pageOverflow = 410;
   observed.layout.regions[0].overflow = 410;
 
   const checks = buildChecks(observed, { hero: [1] });
   assert.equal(byId(checks, 'page-overflow').status, 'warning');
-  assert.equal(byId(checks, 'component-overflow').status, 'failed');
+  assert.equal(byId(checks, 'component-overflow').status, 'warning');
+  assert.equal(runStatus(checks), 'passed', 'layout heuristics never fail a run');
   assert.equal(byId(checks, 'component-overflow').component, 'hero');
 });
 
-test('unexplained page overflow fails the page', () => {
+test('unexplained page overflow warns at page level', () => {
   const observed = ok();
   observed.layout.pageOverflow = 50;
-  assert.equal(byId(buildChecks(observed, { hero: [1] }), 'page-overflow').status, 'failed');
+  assert.equal(byId(buildChecks(observed, { hero: [1] }), 'page-overflow').status, 'warning');
 });
 
 test('a block in the content but not in the page fails', () => {
@@ -100,11 +101,11 @@ test('no markers on the page skips component checks', () => {
   assert.equal(runStatus(checks), 'passed');
 });
 
-test('text cut off by overflow:hidden fails', () => {
+test('text cut off by overflow:hidden warns', () => {
   const observed = ok();
   observed.layout.regions[0].clippedText = [{ px: 530, text: 'Welcome to Velo' }, { px: 12, text: 'Sub' }];
   const c = byId(buildChecks(observed, { hero: [1] }), 'component-clipped');
-  assert.equal(c.status, 'failed');
+  assert.equal(c.status, 'warning');
   assert.match(c.message, /cut off by 530px: “Welcome to Velo” \(\+1 more\)/);
 });
 

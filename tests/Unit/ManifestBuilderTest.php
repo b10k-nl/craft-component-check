@@ -25,6 +25,7 @@ class ManifestBuilderTest extends TestCase
         $page = static fn(string $url, array $ids) => [
             'url' => $url, 'title' => "T {$url}", 'pageId' => 1, 'site' => 'default',
             'blockIds' => $ids, 'variants' => ['v'],
+            'updated' => array_fill_keys($ids, '2026-09-01T10:00:00+00:00'),
         ];
 
         return [
@@ -46,6 +47,16 @@ class ManifestBuilderTest extends TestCase
         $this->assertSame(['cards' => [7], 'hero' => [1]], $home['components']);
         $this->assertSame('p1', $home['id']);
         $this->assertSame(['hero' => [2, 3]], $manifest['pages'][1]['components']);
+    }
+
+    public function testBlocksCarryUpdateTimesForSnapshots(): void
+    {
+        $manifest = (new ManifestBuilder())->build($this->samples(), null, self::OPTIONS, '/out', 'full', 'tok');
+
+        $this->assertSame(
+            [1 => ['updated' => '2026-09-01T10:00:00+00:00'], 7 => ['updated' => '2026-09-01T10:00:00+00:00']],
+            $manifest['pages'][0]['blocks'],
+        );
     }
 
     public function testComponentSummary(): void

@@ -24,6 +24,8 @@ final class Usage
      * @param int $depth 1 = directly in the page's Matrix field, 2+ = nested.
      * @param string[] $variant Traits of the block's content: handles of filled
      *        fields, plus `handle=value` for option fields. Sorted.
+     * @param string $blockUpdated When the block's content last changed (ISO
+     *        8601), so a snapshot can tell a content edit from a code change.
      */
     public function __construct(
         public readonly string $component,
@@ -38,6 +40,7 @@ final class Usage
         public readonly string $pageType,
         public readonly int $depth = 1,
         public readonly array $variant = [],
+        public readonly string $blockUpdated = '',
     ) {
     }
 

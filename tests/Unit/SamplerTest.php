@@ -32,6 +32,7 @@ class SamplerTest extends TestCase
             section: $section,
             pageType: 'default',
             variant: $variant,
+            blockUpdated: '2026-09-01T10:00:00+00:00',
         );
     }
 
@@ -122,6 +123,14 @@ class SamplerTest extends TestCase
         ]);
 
         $this->assertSame(['hero', 'quote'], array_keys($samples));
+    }
+
+    public function testPagesCarryBlockUpdateTimes(): void
+    {
+        $sample = (new Sampler())->sample([$this->usage('hero', 'https://site.test/')])['hero'];
+
+        $id = $sample->pages[0]['blockIds'][0];
+        $this->assertSame([$id => '2026-09-01T10:00:00+00:00'], $sample->pages[0]['updated']);
     }
 
     public function testEmptyInput(): void

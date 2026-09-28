@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { buildChecks, clampClip, isMobileViewport, matchesAny, runStatus, slug, FAILED } from './checks.mjs';
 import { collectLayout, scrollThrough } from './layout.mjs';
+import { compareWithSnapshot, componentOf, loadIndex, snapshotKey, writeIndex } from './snapshot.mjs';
 
 /**
  * Visits every manifest page on every viewport and records what it saw.
@@ -25,12 +26,18 @@ export async function runManifest(manifest, { playwright, headed = false, log = 
     }
   }
 
+  const snapshot = manifest.snapshot ?? null;
+  const ctx = {
+    snapshot,
+    index: snapshot?.action === 'compare' ? loadIndex(snapshot.dir) : null,
+  };
+
   const browser = await playwright.chromium.launch({ headless: !headed });
   const runs = [];
 
   try {
     await pool(jobs, Math.max(1, options.concurrency || 1), async (job) => {
-      const run = await runOne(browser, job, manifest, outputDir);
+      const run = await runOne(browser, job, manifest, outputDir, ctx);
       runs.push(run);
       const mark = run.status === FAILED ? '✕' : '✓';
       log(`${mark} ${job.viewportName.padEnd(8)} ${job.page.url}`);
@@ -43,9 +50,23 @@ export async function runManifest(manifest, { playwright, headed = false, log = 
   const order = new Map(jobs.map((j, i) => [`${j.page.id}|${j.viewportName}`, i]));
   runs.sort((a, b) => order.get(`${a.pageId}|${a.viewport}`) - order.get(`${b.pageId}|${b.viewport}`));
 
+  let recorded = null;
+  if (snapshot?.action === 'record') {
+    const entries = runs.flatMap((r) => r.recorded ?? []);
+    writeIndex(snapshot.dir, entries);
+    recorded = entries.length;
+  }
+  for (const r of runs) delete r.recorded;
+
   const finishedAt = new Date();
   return {
     schema: 1,
+    snapshot: snapshot ? {
+      action: snapshot.action,
+      dir: snapshot.dir,
+      recorded,
+      comparedAgainst: ctx.index?.updatedAt ?? null,
+    } : null,
     startedAt: startedAt.toISOString(),
     finishedAt: finishedAt.toISOString(),
     durationMs: finishedAt - startedAt,
@@ -54,7 +75,7 @@ export async function runManifest(manifest, { playwright, headed = false, log = 
   };
 }
 
-async function runOne(browser, { page: target, viewportName, viewport }, manifest, outputDir) {
+async function runOne(browser, { page: target, viewportName, viewport }, manifest, outputDir, ctx = {}) {
   const options = manifest.options || {};
   const markers = manifest.markers;
   const origin = new URL(target.url).origin;
@@ -133,6 +154,16 @@ async function runOne(browser, { page: target, viewportName, viewport }, manifes
     ignoreErrors: options.ignoreErrors || [],
     markersExpected: Boolean(markers),
   });
+  if (ctx.index) {
+    checks.push(...compareWithSnapshot({
+      layout: observed.layout,
+      target,
+      viewport: viewportName,
+      index: ctx.index,
+      dir: ctx.snapshot.dir,
+      tolerance: options.tolerance,
+    }));
+  }
   const status = runStatus(checks);
 
   const artifacts = { page: null, components: [], trace: null };
@@ -155,7 +186,13 @@ async function runOne(browser, { page: target, viewportName, viewport }, manifes
           animations: 'disabled',
           clip: clampClip(region.rect, observed.layout.pageWidth, observed.layout.pageHeight),
         });
-        artifacts.components.push({ component: c.component, blockId: c.blockId, path: file });
+        const before = ctx.index?.blocks?.[snapshotKey(c.blockId, viewportName)]?.screenshot;
+        artifacts.components.push({
+          component: c.component,
+          blockId: c.blockId,
+          path: file,
+          before: before ? path.join(ctx.snapshot.dir, before) : null,
+        });
       } catch {
         // A failed screenshot must not hide the failure itself.
       }
@@ -180,9 +217,45 @@ async function runOne(browser, { page: target, viewportName, viewport }, manifes
     await context.tracing.stop().catch(() => {});
   }
 
+  // Recording a snapshot: geometry + screenshot of every block we could find.
+  const recorded = [];
+  if (ctx.snapshot?.action === 'record' && observed.layout) {
+    for (const region of observed.layout.regions) {
+      const component = componentOf(target, region.blockId);
+      if (!component || !region.found || !region.geometry || !region.rect) continue;
+      const rel = path.join(slug(viewportName), String(region.blockId));
+      const geometryFile = `${rel}.json`;
+      const screenshotFile = `${rel}.png`;
+      fs.mkdirSync(path.join(ctx.snapshot.dir, slug(viewportName)), { recursive: true });
+      fs.writeFileSync(path.join(ctx.snapshot.dir, geometryFile), JSON.stringify(region.geometry));
+      let shot = screenshotFile;
+      try {
+        await page.screenshot({
+          path: path.join(ctx.snapshot.dir, screenshotFile),
+          fullPage: true,
+          animations: 'disabled',
+          clip: clampClip(region.rect, observed.layout.pageWidth, observed.layout.pageHeight),
+        });
+      } catch {
+        shot = null;
+      }
+      recorded.push({
+        blockId: region.blockId,
+        viewport: viewportName,
+        component,
+        url: target.url,
+        updated: target.blocks?.[region.blockId]?.updated ?? null,
+        takenAt: new Date().toISOString(),
+        geometry: geometryFile,
+        screenshot: shot,
+      });
+    }
+  }
+
   await context.close();
 
   return {
+    recorded,
     pageId: target.id,
     url: target.url,
     title: target.title,

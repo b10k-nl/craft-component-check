@@ -72,6 +72,7 @@ class TestRunner extends Component
                 'ignoreErrors' => $settings->ignoreErrors,
                 'blockRequests' => $settings->blockRequests,
                 'ignoreHttpsErrors' => $settings->ignoreHttpsErrors,
+                'tolerance' => $settings->tolerance,
             ],
             outputDir: $this->outputDir(),
             mode: $mode,
@@ -133,8 +134,35 @@ class TestRunner extends Component
 
     public function outputDir(): string
     {
+        return $this->basePath() . DIRECTORY_SEPARATOR . 'latest';
+    }
+
+    /**
+     * Local before/after snapshots. Never cleared by a test run; `snapshot`
+     * adds to it (a snapshot of `hero` keeps the one of `cards`).
+     */
+    public function snapshotDir(): string
+    {
+        return $this->basePath() . DIRECTORY_SEPARATOR . 'snapshot';
+    }
+
+    /**
+     * When the snapshot was last written, or null if there is none.
+     */
+    public function snapshotTakenAt(): ?string
+    {
+        $index = $this->snapshotDir() . DIRECTORY_SEPARATOR . 'index.json';
+        if (!is_file($index)) {
+            return null;
+        }
+        $data = Json::decodeIfJson((string)file_get_contents($index));
+        return is_array($data) && is_string($data['updatedAt'] ?? null) ? $data['updatedAt'] : null;
+    }
+
+    private function basePath(): string
+    {
         $base = (string)Craft::getAlias(Plugin::getInstance()->getSettings()->outputPath);
-        return rtrim($base, '/\\') . DIRECTORY_SEPARATOR . 'latest';
+        return rtrim($base, '/\\');
     }
 
     public static function runnerScript(): string

@@ -17,6 +17,7 @@ final class ResultsReport
     public const PASSED = 'passed';
     public const FAILED = 'failed';
     public const SKIPPED = 'skipped';
+    public const WARNING = 'warning';
 
     /** @var array<int, array<string, mixed>> */
     private array $cases = [];
@@ -79,8 +80,21 @@ final class ResultsReport
                 'viewport' => $case['viewport'],
                 'reasons' => $case['reasons'],
                 'screenshot' => $case['screenshot'],
+                'before' => $case['before'],
                 'trace' => $case['trace'],
             ];
+        }
+
+        $warnings = [];
+        foreach ($this->cases as $case) {
+            foreach ($case['warnings'] as $message) {
+                $warnings[] = [
+                    'component' => $case['component'],
+                    'url' => $case['url'],
+                    'viewport' => $case['viewport'],
+                    'message' => $message,
+                ];
+            }
         }
 
         return [
@@ -88,6 +102,8 @@ final class ResultsReport
             'passed' => $this->count(self::PASSED),
             'failed' => $this->count(self::FAILED),
             'skipped' => $this->count(self::SKIPPED),
+            'warnings' => $warnings,
+            'snapshot' => $this->results['snapshot'] ?? null,
             'error' => $this->results['error'] ?? null,
             'components' => $components,
             'failures' => $failures,
@@ -135,8 +151,16 @@ final class ResultsReport
                     if ($case['screenshot']) {
                         $lines[] = "        screenshot: {$case['screenshot']}";
                     }
+                    if ($case['before']) {
+                        $lines[] = "        before:     {$case['before']}";
+                    }
                     if ($case['trace']) {
                         $lines[] = "        trace:      {$case['trace']}";
+                    }
+                }
+                foreach ($byViewport as $viewport => $case) {
+                    foreach ($case['warnings'] as $warning) {
+                        $lines[] = "      ⚠ {$viewport}: {$warning}";
                     }
                 }
             }
@@ -148,12 +172,14 @@ final class ResultsReport
             $lines[] = '';
         }
 
+        $warningCount = array_sum(array_map(static fn(array $c) => count($c['warnings']), $this->cases));
         $lines[] = sprintf(
-            '%s — %d passed, %d failed, %d skipped',
+            '%s — %d passed, %d failed, %d skipped%s',
             strtoupper($this->status()),
             $this->count(self::PASSED),
             $this->count(self::FAILED),
             $this->count(self::SKIPPED),
+            $warningCount > 0 ? sprintf(', %d warning(s)', $warningCount) : '',
         );
 
         return $lines;
@@ -175,8 +201,11 @@ final class ResultsReport
             foreach (array_keys($this->manifest['viewports'] ?? []) as $viewport) {
                 $run = $runs[$page['id']][$viewport] ?? null;
 
+                $first = true;
                 foreach (array_keys($page['components']) as $component) {
-                    $cases[] = $this->caseFor($page, (string)$viewport, (string)$component, $run);
+                    // Page-level warnings are listed once per page, not once per component.
+                    $cases[] = $this->caseFor($page, (string)$viewport, (string)$component, $run, $first);
+                    $first = false;
                 }
             }
         }
@@ -189,7 +218,7 @@ final class ResultsReport
      * @param array<string, mixed>|null $run
      * @return array<string, mixed>
      */
-    private function caseFor(array $page, string $viewport, string $component, ?array $run): array
+    private function caseFor(array $page, string $viewport, string $component, ?array $run, bool $pageWarnings = true): array
     {
         $case = [
             'component' => $component,
@@ -198,7 +227,9 @@ final class ResultsReport
             'viewport' => $viewport,
             'status' => self::SKIPPED,
             'reasons' => [],
+            'warnings' => [],
             'screenshot' => null,
+            'before' => null,
             'trace' => null,
         ];
 
@@ -210,7 +241,17 @@ final class ResultsReport
         $failed = false;
         foreach ($run['checks'] ?? [] as $check) {
             $appliesToCase = ($check['component'] ?? null) === null || $check['component'] === $component;
-            if (!$appliesToCase || ($check['status'] ?? '') !== self::FAILED) {
+            if (!$appliesToCase) {
+                continue;
+            }
+            if (($check['status'] ?? '') === self::WARNING) {
+                if (($check['component'] ?? null) === null && !$pageWarnings) {
+                    continue;
+                }
+                $case['warnings'][] = (string)($check['message'] ?? $check['check'] ?? 'warning');
+                continue;
+            }
+            if (($check['status'] ?? '') !== self::FAILED) {
                 continue;
             }
             $failed = true;
@@ -225,6 +266,7 @@ final class ResultsReport
             foreach ($run['artifacts']['components'] ?? [] as $shot) {
                 if (($shot['component'] ?? null) === $component) {
                     $case['screenshot'] = $shot['path'];
+                    $case['before'] = $shot['before'] ?? null;
                     break;
                 }
             }
