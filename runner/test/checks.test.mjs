@@ -100,6 +100,14 @@ test('no markers on the page skips component checks', () => {
   assert.equal(runStatus(checks), 'passed');
 });
 
+test('text cut off by overflow:hidden fails', () => {
+  const observed = ok();
+  observed.layout.regions[0].clippedText = [{ px: 530, text: 'Welcome to Velo' }, { px: 12, text: 'Sub' }];
+  const c = byId(buildChecks(observed, { hero: [1] }), 'component-clipped');
+  assert.equal(c.status, 'failed');
+  assert.match(c.message, /cut off by 530px: “Welcome to Velo” \(\+1 more\)/);
+});
+
 test('zero-size and broken images fail', () => {
   const observed = ok();
   observed.layout.regions[0] = { blockId: 1, found: true, width: 0, height: 0, overflow: 0, brokenImages: ['/x.jpg'] };

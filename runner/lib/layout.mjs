@@ -78,7 +78,7 @@ export function collectLayout(blockIds) {
     });
 
     if (elements.length === 0) {
-      return { blockId, found: elementsByBlock.has(blockId), width: 0, height: 0, overflow: 0, brokenImages: [], rect: null };
+      return { blockId, found: elementsByBlock.has(blockId), width: 0, height: 0, overflow: 0, brokenImages: [], clippedText: [], rect: null };
     }
 
     let left = Infinity;
@@ -138,9 +138,56 @@ export function collectLayout(blockIds) {
       }
     }
 
+    // Text cut off by an overflow:hidden (or clip/auto/scroll) ancestor: the
+    // page does not scroll sideways, so the overflow check above stays quiet,
+    // but part of a heading or paragraph is simply gone. Measured on the text
+    // itself, not on its box — a wide box with short text is fine. Text that
+    // lies entirely outside the clip (an off-screen carousel slide) is
+    // intentional and ignored; only text straddling the edge counts.
+    const clippedText = [];
+    const seen = new Set();
+    for (const el of elements) {
+      const texts = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      for (let t = texts.nextNode(); t; t = texts.nextNode()) {
+        if (!t.nodeValue || !t.nodeValue.trim()) continue;
+        const parent = t.parentElement;
+        if (!parent || seen.has(parent)) continue;
+        const ps = getComputedStyle(parent);
+        if (ps.display === 'none' || ps.visibility === 'hidden' || ps.opacity === '0') continue;
+
+        const range = document.createRange();
+        range.selectNodeContents(t);
+        const tr = range.getBoundingClientRect();
+        if (tr.width === 0 || tr.height === 0) continue;
+
+        let visLeft = -Infinity;
+        let visRight = Infinity;
+        for (let a = parent; a && a !== document.documentElement; a = a.parentElement) {
+          const ov = getComputedStyle(a).overflowX;
+          if (ov === 'hidden' || ov === 'clip' || ov === 'auto' || ov === 'scroll') {
+            const ar = a.getBoundingClientRect();
+            visLeft = Math.max(visLeft, ar.left);
+            visRight = Math.min(visRight, ar.right);
+          }
+        }
+        if (!Number.isFinite(visLeft) && !Number.isFinite(visRight)) continue;
+
+        const intersects = tr.right > visLeft + 1 && tr.left < visRight - 1;
+        if (!intersects) continue;
+        const cut = Math.round(Math.max(0, tr.right - visRight, visLeft - tr.left));
+        if (cut > 1) {
+          seen.add(parent);
+          const snippet = (parent.textContent || '').trim().replace(/\s+/g, ' ');
+          clippedText.push({ px: cut, text: snippet.length > 40 ? snippet.slice(0, 39) + '…' : snippet });
+        }
+      }
+    }
+    clippedText.sort((a, b) => b.px - a.px);
+
     return {
       blockId,
       found: true,
+      clippedText,
       width,
       height,
       overflow,

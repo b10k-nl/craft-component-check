@@ -34,6 +34,14 @@ const pages = {
     <section ${m('data-cc-component="cards" data-cc-block="7"')}><p>Cards</p></section>`,
   '/about': (m) => `
     ${m('<!--cc:start hero 2-->')}<section class="hero"><div style="width:800px;max-width:none">Wide hero</div></section>${m('<!--cc:end 2-->')}`,
+  // Velo's hero, broken on purpose: a 1200px heading inside overflow-hidden.
+  // No sideways scroll, so only the clipped-text check can see it. The
+  // off-screen slide next to it is a carousel doing its job, not a bug.
+  '/clip': (m) => `
+    ${m('<!--cc:start hero 6-->')}<section style="overflow:hidden;position:relative">
+      <div style="padding:40px;max-width:672px"><h1 style="width:1200px;font-size:48px">Ride further, feel stronger, every single week</h1></div>
+      <div style="display:flex;width:300%"><div style="width:33%">Slide one</div><div style="width:33%;transform:translateX(200%)">Slide two far away</div></div>
+    </section>${m('<!--cc:end 6-->')}`,
   '/missing': (m) => `${m('<!--cc:start hero 3-->')}<section>Only three</section>${m('<!--cc:end 3-->')}`,
   '/js': (m) => `${m('<!--cc:start hero 4-->')}<section>JS</section>${m('<!--cc:end 4-->')}<script>undefinedFunction()</script>`,
 };
@@ -91,6 +99,7 @@ function manifest(markers = true) {
       { id: 'p3', url: `${baseUrl}/missing`, title: 'Missing', components: { hero: [3, 30] } },
       { id: 'p4', url: `${baseUrl}/js`, title: 'JS', components: { hero: [4] } },
       { id: 'p5', url: `${baseUrl}/broken`, title: 'Broken', components: { hero: [5] } },
+      { id: 'p6', url: `${baseUrl}/clip`, title: 'Clip', components: { hero: [6] } },
     ],
   };
 }
@@ -103,7 +112,7 @@ test('real browser: finds components, catches mobile overflow, JS errors and HTT
 
   const results = await runManifest(manifest(), { playwright: loaded.playwright });
 
-  assert.equal(results.runs.length, 10);
+  assert.equal(results.runs.length, 12);
   assert.equal(results.error, null);
 
   // Home: both marker styles found, everything passes, blocked GTM is not a failure.
@@ -125,6 +134,12 @@ test('real browser: finds components, catches mobile overflow, JS errors and HTT
 
   // Missing: block 30 exists in content but not in the page.
   assert.deepEqual(failed(find(results, 'p3', 'desktop')), ['component-present:30']);
+
+  // Clipped heading: invisible to the overflow check, caught on mobile.
+  const clipMobile = find(results, 'p6', 'mobile');
+  assert.deepEqual(failed(clipMobile), ['component-clipped:6']);
+  assert.match(clipMobile.checks.find((c) => c.check === 'component-clipped').message, /Ride further/);
+  assert.doesNotMatch(clipMobile.checks.find((c) => c.check === 'component-clipped').message, /Slide two/);
 
   // JS error and HTTP 500 are page-level.
   assert.deepEqual(failed(find(results, 'p4', 'desktop')), ['js-errors:']);
