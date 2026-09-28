@@ -86,7 +86,7 @@ function manifest(markers = true) {
       ignoreHttpsErrors: true,
     },
     pages: [
-      { id: 'p1', url: `${baseUrl}/`, title: 'Home', components: { cards: [7], hero: [1] } },
+      { id: 'p1', url: `${baseUrl}/`, title: 'Home', components: { card: [70], cards: [7], hero: [1] } },
       { id: 'p2', url: `${baseUrl}/about`, title: 'About', components: { hero: [2] } },
       { id: 'p3', url: `${baseUrl}/missing`, title: 'Missing', components: { hero: [3, 30] } },
       { id: 'p4', url: `${baseUrl}/js`, title: 'JS', components: { hero: [4] } },
@@ -111,6 +111,8 @@ test('real browser: finds components, catches mobile overflow, JS errors and HTT
     const home = find(results, 'p1', vp);
     assert.deepEqual(failed(home), [], `home ${vp}`);
     assert.equal(home.checks.filter((c) => c.check === 'component-present' && c.status === 'passed').length, 2);
+    // A nested block type with no markers of its own is skipped, not failed.
+    assert.equal(home.checks.find((c) => c.blockId === 70).status, 'skipped');
   }
 
   // About: fine on desktop, 800px child overflows a 390px viewport.

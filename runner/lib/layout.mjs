@@ -14,10 +14,12 @@ export function collectLayout(blockIds) {
   /** @type {Map<number, Element[]>} */
   const elementsByBlock = new Map();
   let markersPresent = false;
+  const markedComponents = new Set();
 
   // 1. Attribute markers.
   for (const el of document.querySelectorAll('[data-cc-block]')) {
     markersPresent = true;
+    markedComponents.add(el.getAttribute('data-cc-component'));
     const id = Number(el.getAttribute('data-cc-block'));
     if (!elementsByBlock.has(id)) elementsByBlock.set(id, []);
     elementsByBlock.get(id).push(el);
@@ -32,6 +34,7 @@ export function collectLayout(blockIds) {
     let m = /^cc:start\s+(\S+)\s+(\d+)$/.exec(text);
     if (m) {
       markersPresent = true;
+      markedComponents.add(m[1]);
       open.push({ id: Number(m[2]), start: node });
       continue;
     }
@@ -150,6 +153,7 @@ export function collectLayout(blockIds) {
 
   return {
     markersPresent,
+    markedComponents: [...markedComponents],
     pageOverflow: Math.max(0, Math.round(doc.scrollWidth - viewportWidth)),
     pageWidth: Math.max(doc.scrollWidth, viewportWidth),
     pageHeight: Math.max(doc.scrollHeight, document.body ? document.body.scrollHeight : 0),
