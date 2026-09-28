@@ -1,15 +1,15 @@
 <?php
 
-namespace b10k\componentregression;
+namespace b10k\componentcheck;
 
-use b10k\componentregression\models\Settings;
-use b10k\componentregression\services\ActivationPolicy;
-use b10k\componentregression\services\ManifestBuilder;
-use b10k\componentregression\services\Markers;
-use b10k\componentregression\services\Sampler;
-use b10k\componentregression\services\TestRunner;
-use b10k\componentregression\services\UsageDiscovery;
-use b10k\componentregression\variables\RegressionVariable;
+use b10k\componentcheck\models\Settings;
+use b10k\componentcheck\services\ActivationPolicy;
+use b10k\componentcheck\services\ManifestBuilder;
+use b10k\componentcheck\services\Markers;
+use b10k\componentcheck\services\Sampler;
+use b10k\componentcheck\services\TestRunner;
+use b10k\componentcheck\services\UsageDiscovery;
+use b10k\componentcheck\variables\ComponentCheckVariable;
 use Craft;
 use craft\base\Model;
 use craft\base\Plugin as BasePlugin;
@@ -18,7 +18,7 @@ use craft\web\twig\variables\CraftVariable;
 use yii\base\Event;
 
 /**
- * Component Regression — Craft tells Playwright what is worth testing.
+ * Component Check — Craft tells Playwright what is worth testing.
  *
  * Installs on every environment (so project config and templates are the same
  * everywhere) and does nothing unless the mode allows it; see
@@ -28,8 +28,8 @@ use yii\base\Event;
  */
 class Plugin extends BasePlugin
 {
-    /** Env var read when `mode` is not set in config/component-regression.php. */
-    public const MODE_ENV = 'COMPONENT_REGRESSION_MODE';
+    /** Env var read when `mode` is not set in config/component-check.php. */
+    public const MODE_ENV = 'COMPONENT_CHECK_MODE';
 
     public string $schemaVersion = '0.1.0';
     public bool $hasCpSettings = false;
@@ -53,7 +53,7 @@ class Plugin extends BasePlugin
         parent::init();
 
         if (Craft::$app->getRequest()->getIsConsoleRequest()) {
-            $this->controllerNamespace = 'b10k\\componentregression\\console\\controllers';
+            $this->controllerNamespace = 'b10k\\componentcheck\\console\\controllers';
         }
 
         Event::on(
@@ -62,7 +62,7 @@ class Plugin extends BasePlugin
             static function (Event $event): void {
                 /** @var CraftVariable $variable */
                 $variable = $event->sender;
-                $variable->set('regression', RegressionVariable::class);
+                $variable->set('componentCheck', ComponentCheckVariable::class);
             },
         );
     }

@@ -1,9 +1,9 @@
 <?php
 
-namespace b10k\componentregression\console\controllers;
+namespace b10k\componentcheck\console\controllers;
 
-use b10k\componentregression\Plugin;
-use b10k\componentregression\services\ActivationPolicy;
+use b10k\componentcheck\Plugin;
+use b10k\componentcheck\services\ActivationPolicy;
 use craft\helpers\Console;
 use craft\helpers\Json;
 use yii\console\Controller;
@@ -49,7 +49,7 @@ abstract class BaseController extends Controller
         }
 
         return $this->error(
-            "Component Regression is not enabled here. " . $plugin->explainMode(),
+            "Component Check is not enabled here. " . $plugin->explainMode(),
             ['mode' => $plugin->getMode()],
         );
     }

@@ -2,8 +2,8 @@
 // no imports, no closures over module scope.
 //
 // Finds each expected block by its markers — attributes
-// (data-cr-block="123") or comment pairs (<!--cr:start hero 123--> …
-// <!--cr:end 123-->) — and measures it.
+// (data-cc-block="123") or comment pairs (<!--cc:start hero 123--> …
+// <!--cc:end 123-->) — and measures it.
 
 export function collectLayout(blockIds) {
   const doc = document.documentElement;
@@ -16,9 +16,9 @@ export function collectLayout(blockIds) {
   let markersPresent = false;
 
   // 1. Attribute markers.
-  for (const el of document.querySelectorAll('[data-cr-block]')) {
+  for (const el of document.querySelectorAll('[data-cc-block]')) {
     markersPresent = true;
-    const id = Number(el.getAttribute('data-cr-block'));
+    const id = Number(el.getAttribute('data-cc-block'));
     if (!elementsByBlock.has(id)) elementsByBlock.set(id, []);
     elementsByBlock.get(id).push(el);
   }
@@ -29,13 +29,13 @@ export function collectLayout(blockIds) {
   const pairs = [];
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
     const text = node.nodeValue.trim();
-    let m = /^cr:start\s+(\S+)\s+(\d+)$/.exec(text);
+    let m = /^cc:start\s+(\S+)\s+(\d+)$/.exec(text);
     if (m) {
       markersPresent = true;
       open.push({ id: Number(m[2]), start: node });
       continue;
     }
-    m = /^cr:end\s+(\d+)$/.exec(text);
+    m = /^cc:end\s+(\d+)$/.exec(text);
     if (m) {
       const id = Number(m[1]);
       for (let i = open.length - 1; i >= 0; i--) {

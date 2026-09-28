@@ -1,9 +1,9 @@
 <?php
 
-namespace b10k\componentregression\tests\Unit;
+namespace b10k\componentcheck\tests\Unit;
 
-use b10k\componentregression\models\Usage;
-use b10k\componentregression\services\Sampler;
+use b10k\componentcheck\models\Usage;
+use b10k\componentcheck\services\Sampler;
 use PHPUnit\Framework\TestCase;
 
 class SamplerTest extends TestCase

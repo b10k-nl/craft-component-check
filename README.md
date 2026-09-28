@@ -1,12 +1,12 @@
-# Component Regression
+# Component Check
 
 **You changed the Hero. Which pages just broke on mobile?** Craft already knows
-where every Hero is used. Component Regression asks Craft, picks the pages worth
+where every Hero is used. Component Check asks Craft, picks the pages worth
 testing, and runs desktop and mobile browser checks on them with Playwright —
 without a single test file.
 
 ```
-$ php craft component-regression/test hero
+$ php craft component-check/test hero
 
 Hero (hero)
   Home                             desktop ✓   mobile ✓
@@ -14,8 +14,8 @@ Hero (hero)
   About                            desktop ✓   mobile ✕
     /about
       ✕ mobile: Block #1823 is 318px wider than the viewport
-        screenshot: storage/component-regression/latest/screenshots/hero/p2-mobile-1823.png
-        trace:      storage/component-regression/latest/traces/p2-mobile.zip
+        screenshot: storage/component-check/latest/screenshots/hero/p2-mobile-1823.png
+        trace:      storage/component-check/latest/traces/p2-mobile.zip
 
 FAILED — 3 passed, 1 failed, 0 skipped
 ```
@@ -59,13 +59,13 @@ Matrix fields ─► every block on a live page ─► representative pages ─�
 ## Setup
 
 ```bash
-composer require b10k/craft-component-regression
-php craft plugin/install component-regression
+composer require b10k/craft-component-check
+php craft plugin/install component-check
 
 npm install --save-dev playwright
 npx playwright install --with-deps chromium
 
-php craft component-regression/doctor
+php craft component-check/doctor
 ```
 
 `doctor` checks the mode, Node, Playwright, Chromium, the output directory,
@@ -86,16 +86,16 @@ blocks — no component needs to change:
 
 ```twig
 {% for block in entry.contentBlocks.all() %}
-    {{ craft.regression.start(block) }}
+    {{ craft.componentCheck.start(block) }}
     {% include '_blocks/' ~ block.type.handle %}
-    {{ craft.regression.end() }}
+    {{ craft.componentCheck.end() }}
 {% endfor %}
 ```
 
 Or, on a component's root element:
 
 ```twig
-<section class="hero" {{ craft.regression.attributes(block) }}>
+<section class="hero" {{ craft.componentCheck.attributes(block) }}>
 ```
 
 **These render nothing** unless the request comes from a test run: the mode is
@@ -111,9 +111,9 @@ Markers nest (a card inside a cards grid); `end()` closes the most recent
 
 | Command | What it does | Needs mode |
 |---|---|---|
-| `component-regression/discover [components]` | Where each component is used and which pages would be tested. `--all` lists every page, `--json` prints the manifest. | `readonly` |
-| `component-regression/test [components]` | Runs the browser checks. `--viewport=mobile`, `--json`, `--headed`. | `readonly` (page checks) / `full` (component checks) |
-| `component-regression/doctor` | Checks the setup. `--json`. | any |
+| `component-check/discover [components]` | Where each component is used and which pages would be tested. `--all` lists every page, `--json` prints the manifest. | `readonly` |
+| `component-check/test [components]` | Runs the browser checks. `--viewport=mobile`, `--json`, `--headed`. | `readonly` (page checks) / `full` (component checks) |
+| `component-check/doctor` | Checks the setup. `--json`. | any |
 
 `components` is a comma-separated list of entry type handles: `hero,cards`.
 
@@ -124,7 +124,7 @@ branch on them.
 ### JSON
 
 ```bash
-php craft component-regression/test hero --json
+php craft component-check/test hero --json
 ```
 
 ```json
@@ -144,11 +144,11 @@ php craft component-regression/test hero --json
       "title": "About",
       "viewport": "mobile",
       "reasons": ["Block #1823 is 318px wider than the viewport"],
-      "screenshot": "/…/storage/component-regression/latest/screenshots/hero/p2-mobile-1823.png",
-      "trace": "/…/storage/component-regression/latest/traces/p2-mobile.zip"
+      "screenshot": "/…/storage/component-check/latest/screenshots/hero/p2-mobile-1823.png",
+      "trace": "/…/storage/component-check/latest/traces/p2-mobile.zip"
     }
   ],
-  "outputDir": "/…/storage/component-regression/latest",
+  "outputDir": "/…/storage/component-check/latest",
   "manifest": "/…/latest/manifest.json",
   "results": "/…/latest/results.json"
 }
@@ -175,13 +175,13 @@ an explicit setting always wins:
 
 ```bash
 # .env on staging / in CI
-COMPONENT_REGRESSION_MODE=full
+COMPONENT_CHECK_MODE=full
 ```
 
 ## Configuration
 
-Copy `vendor/b10k/craft-component-regression/src/config.php` to
-`config/component-regression.php`. Highlights:
+Copy `vendor/b10k/craft-component-check/src/config.php` to
+`config/component-check.php`. Highlights:
 
 | Setting | Default | |
 |---|---|---|
@@ -193,21 +193,21 @@ Copy `vendor/b10k/craft-component-regression/src/config.php` to
 | `viewports` | desktop 1440×900, mobile 390×844 | Add `isMobile` to override the touch/mobile heuristic |
 | `ignoreErrors` | `[]` | Substrings of JS errors to ignore |
 | `blockRequests` | GTM, GA, Facebook, Hotjar | Blocked in the browser |
-| `outputPath` | `@storage/component-regression` | Artifacts go to `…/latest/` |
+| `outputPath` | `@storage/component-check` | Artifacts go to `…/latest/` |
 | `concurrency` | `4` | Pages in parallel |
 
 ## CI
 
 ```yaml
 - run: npm ci && npx playwright install --with-deps chromium
-- run: php craft component-regression/test --json > regression.json
+- run: php craft component-check/test --json > component-check.json
   env:
-    COMPONENT_REGRESSION_MODE: full
+    COMPONENT_CHECK_MODE: full
 - uses: actions/upload-artifact@v4
   if: failure()
   with:
-    name: component-regression
-    path: storage/component-regression/latest
+    name: component-check
+    path: storage/component-check/latest
 ```
 
 The results are only as representative as the database the job runs against:

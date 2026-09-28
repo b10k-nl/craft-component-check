@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// Component Regression runner.
+// Component Check runner.
 //
-// Started by `php craft component-regression/test`; can also be run by hand
-// against a manifest from `php craft component-regression/discover --json`:
+// Started by `php craft component-check/test`; can also be run by hand
+// against a manifest from `php craft component-check/discover --json`:
 //
-//   node vendor/b10k/craft-component-regression/runner/run.mjs \
+//   node vendor/b10k/craft-component-check/runner/run.mjs \
 //     --manifest manifest.json --results results.json
 //
 // Progress goes to stderr; stdout stays empty. Results always land in the

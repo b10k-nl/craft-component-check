@@ -1,9 +1,9 @@
 <?php
 
-namespace b10k\componentregression\services;
+namespace b10k\componentcheck\services;
 
-use b10k\componentregression\models\ComponentSample;
-use b10k\componentregression\models\Usage;
+use b10k\componentcheck\models\ComponentSample;
+use b10k\componentcheck\models\Usage;
 
 /**
  * Picks representative pages per component.

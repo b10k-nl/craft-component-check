@@ -1,7 +1,7 @@
-# Component Regression — instructions for coding agents
+# Component Check — instructions for coding agents
 
 This file is for a coding agent working in a Craft CMS project that has the
-Component Regression plugin installed. Use it whenever you change a Twig
+Component Check plugin installed. Use it whenever you change a Twig
 template, CSS or JavaScript that affects page-builder (Matrix) blocks.
 
 ## The loop
@@ -10,7 +10,7 @@ template, CSS or JavaScript that affects page-builder (Matrix) blocks.
    handles.
 
    ```bash
-   php craft component-regression/discover --json
+   php craft component-check/discover --json
    ```
 
    `components` lists every handle with its usage; `pages` lists the pages that
@@ -20,13 +20,13 @@ template, CSS or JavaScript that affects page-builder (Matrix) blocks.
 2. **Test the components you changed** (comma-separated):
 
    ```bash
-   php craft component-regression/test hero,cards --json
+   php craft component-check/test hero,cards --json
    ```
 
    Exit code `0` = passed, `1` = regressions, `2` = could not run.
 
 3. **On exit code 2**, read `error` and run
-   `php craft component-regression/doctor --json`. Report setup problems to the
+   `php craft component-check/doctor --json`. Report setup problems to the
    human instead of working around them. Never change the plugin's `mode` to
    make a run succeed.
 
@@ -42,7 +42,7 @@ template, CSS or JavaScript that affects page-builder (Matrix) blocks.
 5. **Before you finish**, run the whole project once without arguments:
 
    ```bash
-   php craft component-regression/test --json
+   php craft component-check/test --json
    ```
 
    A shared partial can break a component you did not touch.
@@ -54,7 +54,7 @@ template, CSS or JavaScript that affects page-builder (Matrix) blocks.
 - Do not add `ignoreErrors` or `blockRequests` entries without telling the
   human why.
 - If a component is not rendered (`component-present` failed), check the block
-  loop has `{{ craft.regression.start(block) }}` / `{{ craft.regression.end() }}`
+  loop has `{{ craft.componentCheck.start(block) }}` / `{{ craft.componentCheck.end() }}`
   before assuming the component is broken.
 - `skipped` cases with "Markers off" mean the environment runs page-level checks
   only; that is not a failure.

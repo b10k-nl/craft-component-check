@@ -1,8 +1,8 @@
 <?php
 
-namespace b10k\componentregression\services;
+namespace b10k\componentcheck\services;
 
-use b10k\componentregression\Plugin;
+use b10k\componentcheck\Plugin;
 use Craft;
 use craft\base\Component;
 use craft\helpers\FileHelper;
@@ -22,7 +22,7 @@ class TestRunner extends Component
     /**
      * Discovers and samples the project.
      *
-     * @return array{samples: array<string, \b10k\componentregression\models\ComponentSample>, discovery: array<string, mixed>}
+     * @return array{samples: array<string, \b10k\componentcheck\models\ComponentSample>, discovery: array<string, mixed>}
      */
     public function sample(): array
     {
@@ -40,7 +40,7 @@ class TestRunner extends Component
     }
 
     /**
-     * @param array<string, \b10k\componentregression\models\ComponentSample> $samples
+     * @param array<string, \b10k\componentcheck\models\ComponentSample> $samples
      * @param string[]|null $only
      * @param string[]|null $viewports Names from settings; null = all.
      * @return array<string, mixed>
@@ -118,8 +118,8 @@ class TestRunner extends Component
             $results = [
                 'runs' => [],
                 'error' => $exitCode === 127
-                    ? "Could not start Node (“{$command[0]}”). Run `php craft component-regression/doctor`."
-                    : "The runner exited with code {$exitCode} without writing results. Run `php craft component-regression/doctor`.",
+                    ? "Could not start Node (“{$command[0]}”). Run `php craft component-check/doctor`."
+                    : "The runner exited with code {$exitCode} without writing results. Run `php craft component-check/doctor`.",
             ];
         }
 

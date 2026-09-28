@@ -1,8 +1,8 @@
 <?php
 
-namespace b10k\componentregression\services;
+namespace b10k\componentcheck\services;
 
-use b10k\componentregression\models\Usage;
+use b10k\componentcheck\models\Usage;
 use Craft;
 use craft\base\Component;
 use craft\base\ElementInterface;

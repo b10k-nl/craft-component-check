@@ -1,6 +1,6 @@
 <?php
 
-namespace b10k\componentregression\models;
+namespace b10k\componentcheck\models;
 
 /**
  * One block (nested entry) of a component type, on one page.

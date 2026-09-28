@@ -1,9 +1,9 @@
 <?php
 
-namespace b10k\componentregression\tests\Unit;
+namespace b10k\componentcheck\tests\Unit;
 
-use b10k\componentregression\models\ComponentSample;
-use b10k\componentregression\services\ManifestBuilder;
+use b10k\componentcheck\models\ComponentSample;
+use b10k\componentcheck\services\ManifestBuilder;
 use PHPUnit\Framework\TestCase;
 
 class ManifestBuilderTest extends TestCase
@@ -72,7 +72,7 @@ class ManifestBuilderTest extends TestCase
         $builder = new ManifestBuilder();
 
         $full = $builder->build($this->samples(), null, self::OPTIONS, '/out', 'full', 'tok');
-        $this->assertSame(['header' => 'X-Component-Regression', 'token' => 'tok'], $full['markers']);
+        $this->assertSame(['header' => 'X-Component-Check', 'token' => 'tok'], $full['markers']);
 
         $this->assertNull($builder->build($this->samples(), null, self::OPTIONS, '/out', 'readonly', 'tok')['markers']);
         $this->assertNull($builder->build($this->samples(), null, self::OPTIONS, '/out', 'full', null)['markers']);

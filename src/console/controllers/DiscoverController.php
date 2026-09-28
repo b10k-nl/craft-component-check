@@ -1,16 +1,16 @@
 <?php
 
-namespace b10k\componentregression\console\controllers;
+namespace b10k\componentcheck\console\controllers;
 
-use b10k\componentregression\services\ActivationPolicy;
+use b10k\componentcheck\services\ActivationPolicy;
 use craft\helpers\Console;
 
 /**
  * Where is every component used, and which pages would be tested?
  *
- *     php craft component-regression/discover
- *     php craft component-regression/discover hero
- *     php craft component-regression/discover --json
+ *     php craft component-check/discover
+ *     php craft component-check/discover hero
+ *     php craft component-check/discover --json
  *
  * Read-only: runs database queries, renders nothing, changes nothing. Allowed
  * in `readonly` and `full` mode.
@@ -117,7 +117,7 @@ class DiscoverController extends BaseController
     }
 
     /**
-     * @param \b10k\componentregression\models\Usage[] $usages
+     * @param \b10k\componentcheck\models\Usage[] $usages
      * @param string[]|null $only
      * @return array<string, array<int, array{url: string, title: string}>>
      */

@@ -1,9 +1,9 @@
 <?php
 
-namespace b10k\componentregression\console\controllers;
+namespace b10k\componentcheck\console\controllers;
 
-use b10k\componentregression\services\ActivationPolicy;
-use b10k\componentregression\services\TestRunner;
+use b10k\componentcheck\services\ActivationPolicy;
+use b10k\componentcheck\services\TestRunner;
 use Craft;
 use craft\helpers\Console;
 use craft\helpers\FileHelper;
@@ -12,8 +12,8 @@ use craft\helpers\Json;
 /**
  * Checks everything a test run needs, and says how to fix what is missing.
  *
- *     php craft component-regression/doctor
- *     php craft component-regression/doctor --json
+ *     php craft component-check/doctor
+ *     php craft component-check/doctor --json
  *
  * Works in every mode, including `off`, so it can explain why nothing runs.
  */
@@ -37,7 +37,7 @@ class DoctorController extends BaseController
             'mode',
             ActivationPolicy::allows($mode, ActivationPolicy::READONLY) ? self::OK : self::FAIL,
             $plugin->explainMode(),
-            $mode === ActivationPolicy::OFF ? "Set COMPONENT_REGRESSION_MODE=full (or readonly) for this environment." : null,
+            $mode === ActivationPolicy::OFF ? "Set COMPONENT_CHECK_MODE=full (or readonly) for this environment." : null,
         );
 
         // 2. Node
@@ -164,7 +164,7 @@ class DoctorController extends BaseController
                 'site',
                 self::FAIL,
                 "{$url} is not reachable: " . $e->getMessage(),
-                'If the browser must use another address (CI, Docker), set baseUrl in config/component-regression.php.',
+                'If the browser must use another address (CI, Docker), set baseUrl in config/component-check.php.',
             );
         }
     }
@@ -181,7 +181,7 @@ class DoctorController extends BaseController
 
         if (is_dir($templates)) {
             foreach (FileHelper::findFiles($templates, ['only' => ['*.twig', '*.html']]) as $file) {
-                if (str_contains((string)file_get_contents($file), 'craft.regression.')) {
+                if (str_contains((string)file_get_contents($file), 'craft.componentCheck.')) {
                     $found = true;
                     break;
                 }
@@ -192,8 +192,8 @@ class DoctorController extends BaseController
             return $this->check(
                 'markers',
                 self::WARN,
-                'No craft.regression markers in templates: only page-level checks will run.',
-                'Wrap the include in your block loop with {{ craft.regression.start(block) }} … {{ craft.regression.end() }}.',
+                'No craft.componentCheck markers in templates: only page-level checks will run.',
+                'Wrap the include in your block loop with {{ craft.componentCheck.start(block) }} … {{ craft.componentCheck.end() }}.',
             );
         }
 

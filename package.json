@@ -1,5 +1,5 @@
 {
-  "name": "craft-component-regression-runner-dev",
+  "name": "craft-component-check-runner-dev",
   "private": true,
   "description": "Development-only manifest for testing the bundled runner. Sites do not install this; they install `playwright` in their own project.",
   "type": "module",

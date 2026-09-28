@@ -1,6 +1,6 @@
 <?php
 
-namespace b10k\componentregression\services;
+namespace b10k\componentcheck\services;
 
 /**
  * Reads the runner's results against the manifest and answers the questions a

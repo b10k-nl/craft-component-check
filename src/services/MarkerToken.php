@@ -1,6 +1,6 @@
 <?php
 
-namespace b10k\componentregression\services;
+namespace b10k\componentcheck\services;
 
 /**
  * Short-lived signed tokens that unlock component markers in HTML.
@@ -16,7 +16,7 @@ namespace b10k\componentregression\services;
  */
 final class MarkerToken
 {
-    public const HEADER = 'X-Component-Regression';
+    public const HEADER = 'X-Component-Check';
 
     public static function create(string $key, int $now, int $ttl = 3600): string
     {
@@ -49,6 +49,6 @@ final class MarkerToken
 
     private static function sign(string $key, string $payload): string
     {
-        return hash_hmac('sha256', 'component-regression|' . $payload, $key);
+        return hash_hmac('sha256', 'component-check|' . $payload, $key);
     }
 }

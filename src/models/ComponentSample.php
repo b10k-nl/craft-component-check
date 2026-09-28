@@ -1,6 +1,6 @@
 <?php
 
-namespace b10k\componentregression\models;
+namespace b10k\componentcheck\models;
 
 /**
  * The pages chosen to represent one component, and how much of its real-world

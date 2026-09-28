@@ -87,7 +87,7 @@ test('no markers on the page skips component checks', () => {
   observed.layout.markersPresent = false;
   const checks = buildChecks(observed, { hero: [1] }, { markersExpected: true });
   assert.equal(byId(checks, 'component-present').status, 'skipped');
-  assert.match(byId(checks, 'component-present').message, /craft\.regression\.start/);
+  assert.match(byId(checks, 'component-present').message, /craft\.componentCheck\.start/);
   assert.equal(runStatus(checks), 'passed');
 });
 

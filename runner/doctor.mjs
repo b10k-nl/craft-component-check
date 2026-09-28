@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Used by `php craft component-regression/doctor`. Prints one JSON line.
+// Used by `php craft component-check/doctor`. Prints one JSON line.
 import fs from 'node:fs';
 import { loadPlaywright } from './lib/playwright.mjs';
 

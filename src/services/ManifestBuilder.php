@@ -1,8 +1,8 @@
 <?php
 
-namespace b10k\componentregression\services;
+namespace b10k\componentcheck\services;
 
-use b10k\componentregression\models\ComponentSample;
+use b10k\componentcheck\models\ComponentSample;
 
 /**
  * Turns component samples into the manifest the Playwright runner reads.
