@@ -79,11 +79,11 @@ export function diffGeometry(before, after, { tolerance = DEFAULT_TOLERANCE, max
       score += 7000;
     }
     if (b.color !== a.color) {
-      parts.push(`color ${b.color} → ${a.color}`);
+      parts.push(`color ${prettyColor(b.color)} → ${prettyColor(a.color)}`);
       score += 3000;
     }
     if (b.bg !== a.bg) {
-      parts.push(`background ${b.bg} → ${a.bg}`);
+      parts.push(`background ${prettyColor(b.bg)} → ${prettyColor(a.bg)}`);
       score += 3000;
     }
     if (b.font !== a.font) {
@@ -125,6 +125,20 @@ function label(n) {
 
 function short(text, max = 30) {
   return text.length > max ? text.slice(0, max - 1) + '…' : text;
+}
+
+/**
+ * Computed styles come back as rgb()/rgba(); people read hex.
+ * rgba(0, 0, 0, 0) → transparent, rgb(255, 0, 0) → #ff0000,
+ * rgba(255, 0, 0, 0.5) → #ff0000 at 50%. Anything else is left alone.
+ */
+export function prettyColor(value) {
+  const m = /^rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\s*\)$/.exec(String(value ?? '').trim());
+  if (!m) return value;
+  const alpha = m[4] === undefined ? 1 : Number(m[4]);
+  if (alpha === 0) return 'transparent';
+  const hex = '#' + [m[1], m[2], m[3]].map((n) => Number(n).toString(16).padStart(2, '0')).join('');
+  return alpha < 1 ? `${hex} at ${Math.round(alpha * 100)}%` : hex;
 }
 
 function signed(v) {
