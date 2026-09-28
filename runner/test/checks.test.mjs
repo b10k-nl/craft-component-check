@@ -10,6 +10,7 @@ const ok = () => ({
   failedRequests: [],
   layout: {
     markersPresent: true,
+    markedComponents: ['hero'],
     pageOverflow: 0,
     regions: [{ blockId: 1, found: true, width: 1440, height: 600, overflow: 0, brokenImages: [] }],
   },
@@ -77,9 +78,17 @@ test('unexplained page overflow fails the page', () => {
 });
 
 test('a block in the content but not in the page fails', () => {
-  const checks = buildChecks(ok(), { hero: [1], cards: [9] });
+  const checks = buildChecks(ok(), { hero: [1, 9] });
   assert.equal(byId(checks, 'component-present', 9).status, 'failed');
-  assert.equal(byId(checks, 'component-present', 9).component, 'cards');
+  assert.equal(byId(checks, 'component-present', 9).component, 'hero');
+});
+
+test('a component with no markers on the page is skipped, not failed', () => {
+  // e.g. cards rendered by the cardsGrid template, inside the grid's markers
+  const checks = buildChecks(ok(), { hero: [1], card: [21, 22] });
+  assert.equal(byId(checks, 'component-present', 21).status, 'skipped');
+  assert.match(byId(checks, 'component-present', 21).message, /No markers for “card”/);
+  assert.equal(runStatus(checks), 'passed');
 });
 
 test('no markers on the page skips component checks', () => {

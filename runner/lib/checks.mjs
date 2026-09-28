@@ -111,6 +111,16 @@ export function buildChecks(observed, expected, options = {}) {
         continue;
       }
 
+      // Only blocks rendered through a marked loop can be located. A nested
+      // block (a card inside a cards grid) is usually rendered by its parent's
+      // template without markers of its own: skip it rather than blame it.
+      if (Array.isArray(layout.markedComponents) && !layout.markedComponents.includes(component)) {
+        checks.push(
+          check('component-present', SKIPPED, `No markers for “${component}” on this page (rendered inside another block?)`, component, blockId),
+        );
+        continue;
+      }
+
       if (!region || !region.found) {
         checks.push(check('component-present', FAILED, `Block #${blockId} is in the content but was not rendered`, component, blockId));
         continue;
