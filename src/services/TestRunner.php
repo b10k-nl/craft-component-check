@@ -139,8 +139,10 @@ class TestRunner extends Component
      * @param array<string, mixed> $manifest
      * @param string[] $paths Absolute directories to watch.
      * @param string[] $ignore Folder names to skip.
+     * @param string[]|null $impactCommand Component Map's impact command, to
+     *        re-check only the blocks a saved file affects.
      */
-    public function watch(array $manifest, array $paths, array $ignore, bool $keepSnapshot, bool $headed = false): int
+    public function watch(array $manifest, array $paths, array $ignore, bool $keepSnapshot, bool $headed = false, ?array $impactCommand = null): int
     {
         $outputDir = $this->outputDir();
         FileHelper::createDirectory($outputDir);
@@ -166,6 +168,9 @@ class TestRunner extends Component
         }
         if ($keepSnapshot) {
             $command[] = '--keep-snapshot';
+        }
+        if ($impactCommand !== null) {
+            array_push($command, '--impact', Json::encode($impactCommand));
         }
         if ($headed) {
             $command[] = '--headed';

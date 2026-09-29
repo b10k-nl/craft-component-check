@@ -15,7 +15,9 @@ import readline from 'node:readline';
 import { loadPlaywright } from './lib/playwright.mjs';
 import { runManifest } from './lib/runner.mjs';
 import { loadIndex } from './lib/snapshot.mjs';
-import { changedFiles, formatRun, scanFiles, summarize } from './lib/watch-lib.mjs';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { changedFiles, filterManifest, formatRun, scanFiles, selectTargets, summarize } from './lib/watch-lib.mjs';
 
 function parseArgs(argv) {
   const args = { manifest: null, results: null, paths: [], ignore: [], keepSnapshot: false, interval: 700, headed: false };
@@ -27,6 +29,7 @@ function parseArgs(argv) {
     else if (a === '--ignore') args.ignore.push(argv[++i]);
     else if (a === '--keep-snapshot') args.keepSnapshot = true;
     else if (a === '--interval') args.interval = Math.max(200, Number(argv[++i]) || 700);
+    else if (a === '--impact') args.impact = JSON.parse(argv[++i]);
     else if (a === '--headed') args.headed = true;
   }
   return args;
@@ -87,29 +90,56 @@ async function record(reason) {
   return n;
 }
 
+// With Component Map installed, a save re-checks only the blocks rendered
+// through the changed files (CSS/JS: everything). `args.impact` is the
+// command to ask it, e.g. ["php", "craft", "component-map/impact", "--json"].
+const run = promisify(execFile);
+async function targetsFor(files) {
+  if (!args.impact || !files || files.length === 0) return null;
+  try {
+    const [cmd, ...rest] = args.impact;
+    const { stdout } = await run(cmd, [...rest, files.join(',')], { timeout: 30000, maxBuffer: 16 * 1024 * 1024 });
+    return selectTargets(JSON.parse(stdout), Object.keys(manifest.components ?? {}));
+  } catch (e) {
+    return { mode: 'all', components: [], reason: `Component Map could not tell (${String(e?.message ?? e).split('\n')[0]}) → all` };
+  }
+}
+
 let previous = null;
-async function compare(trigger) {
-  cleanArtifacts();
+async function compare(trigger, files = null) {
   const started = Date.now();
-  const results = await runManifest({ ...manifest, snapshot: { action: 'compare', dir: snapshotDir } }, {
+  const targets = await targetsFor(files);
+  if (targets?.mode === 'none') {
+    out();
+    out(grey(`[${time()}] ${trigger} — ${targets.reason}, nothing to check`));
+    return;
+  }
+  const scope = targets?.mode === 'some' ? filterManifest(manifest, targets.components) : manifest;
+
+  cleanArtifacts();
+  const results = await runManifest({ ...scope, snapshot: { action: 'compare', dir: snapshotDir } }, {
     playwright: loaded.playwright, browser,
   });
   fs.mkdirSync(path.dirname(resultsFile), { recursive: true });
   fs.writeFileSync(resultsFile, JSON.stringify(results, null, 2));
 
   out();
-  out(grey(`[${time()}] ${trigger} — ${((Date.now() - started) / 1000).toFixed(1)}s`));
-  const state = summarize(manifest, results);
-  for (const line of formatRun(manifest, state, previous)) out(line);
-  previous = state;
+  out(grey(`[${time()}] ${trigger}${targets ? ` ${targets.reason}` : ''} — ${((Date.now() - started) / 1000).toFixed(1)}s`));
+  const state = summarize(scope, results);
+  for (const line of formatRun(scope, state, previous)) out(line);
+  // Remember every component's last result, not only the ones just re-run,
+  // so "fixed" still shows when a later save touches a different block.
+  previous = new Map([...(previous ?? []), ...state]);
 }
 
 // Serialise runs: a change during a run queues exactly one more.
 let running = false;
 let pending = null;
-async function schedule(kind, label) {
+async function schedule(kind, label, files = null) {
   if (running) {
-    pending = pending?.kind === 'record' ? pending : { kind, label };
+    if (pending?.kind === 'record') return;
+    const merged = pending?.files && files ? [...new Set([...pending.files, ...files])] : files;
+    pending = { kind, label: pending && pending.kind === kind ? 'Several changes' : label, files: merged };
     return;
   }
   running = true;
@@ -118,7 +148,7 @@ async function schedule(kind, label) {
       await record(label);
       previous = null;
     } else {
-      await compare(label);
+      await compare(label, files);
     }
   } catch (e) {
     out(red(`  ✕ ${String(e?.message ?? e).split('\n')[0]}`));
@@ -127,7 +157,7 @@ async function schedule(kind, label) {
     if (pending) {
       const next = pending;
       pending = null;
-      schedule(next.kind, next.label);
+      schedule(next.kind, next.label, next.files);
     }
   }
 }
@@ -142,6 +172,7 @@ if (args.keepSnapshot && loadIndex(snapshotDir)) {
   await record('Snapshot taken');
   running = false;
 }
+if (args.impact) out(grey('Component Map is installed: a save re-checks only the blocks rendered through the changed file (CSS/JS: all).'));
 out(grey(`Watching ${args.paths.join(', ')} — save a file to compare.${process.stdin.isTTY ? ' Keys: r run · s new snapshot · q quit' : ' Ctrl+C to stop.'}`));
 
 // Poll for changes.
@@ -156,13 +187,14 @@ const poll = setInterval(() => {
   for (const f of changed) collected.add(f);
   clearTimeout(debounce);
   debounce = setTimeout(() => {
-    const names = [...collected].map((f) => {
+    const absolute = [...collected];
+    const names = absolute.map((f) => {
       const root = args.paths.find((p) => f.startsWith(p));
       return root ? path.relative(path.dirname(root), f) : f;
     });
     collected = new Set();
     const label = names.length === 1 ? `${names[0]} changed` : `${names.length} files changed (${names.slice(0, 3).join(', ')}${names.length > 3 ? ', …' : ''})`;
-    schedule('compare', label);
+    schedule('compare', label, absolute);
   }, 300);
 }, args.interval);
 

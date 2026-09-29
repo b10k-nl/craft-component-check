@@ -135,3 +135,42 @@ export function formatRun(manifest, state, previous = null) {
   );
   return lines;
 }
+
+/**
+ * What to re-run after a change, from `component-map/impact --json`. Mirrors
+ * ChangeSelection.php: templates → the blocks rendered through them; CSS, JS
+ * or PHP → everything; nothing that renders a block → nothing.
+ *
+ * @returns {{mode: 'all'|'some'|'none', components: string[], reason: string}}
+ */
+export function selectTargets(impact, known) {
+  const unmapped = (impact?.unmapped ?? []).filter((f) => typeof f === 'string');
+  if (unmapped.length > 0) {
+    return { mode: 'all', components: [...known], reason: `${unmapped.length === 1 ? unmapped[0] : `${unmapped.length} non-template files`} changed → all` };
+  }
+  const affected = [...new Set((impact?.entryTypes ?? []).filter((h) => typeof h === 'string'))].sort();
+  const testable = affected.filter((h) => known.includes(h));
+  if (testable.length === 0) {
+    return {
+      mode: 'none',
+      components: [],
+      reason: affected.length === 0 ? 'no block is rendered through it' : `affects ${affected.join(', ')} — not on any tested page`,
+    };
+  }
+  return { mode: 'some', components: testable, reason: `→ ${testable.join(', ')}` };
+}
+
+/** The manifest narrowed to some components: fewer pages, fewer checks. */
+export function filterManifest(manifest, components) {
+  const keep = new Set(components);
+  const pages = [];
+  for (const page of manifest.pages) {
+    const kept = Object.fromEntries(Object.entries(page.components).filter(([c]) => keep.has(c)));
+    if (Object.keys(kept).length === 0) continue;
+    const ids = new Set(Object.values(kept).flat().map(String));
+    const blocks = page.blocks ? Object.fromEntries(Object.entries(page.blocks).filter(([id]) => ids.has(id))) : undefined;
+    pages.push({ ...page, components: kept, ...(blocks ? { blocks } : {}) });
+  }
+  const componentsMeta = Object.fromEntries(Object.entries(manifest.components ?? {}).filter(([c]) => keep.has(c)));
+  return { ...manifest, pages, components: componentsMeta };
+}

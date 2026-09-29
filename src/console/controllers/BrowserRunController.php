@@ -27,7 +27,7 @@ abstract class BrowserRunController extends BaseController
      * @return array<string, mixed>|int The manifest, or an exit code after
      *         reporting the problem.
      */
-    protected function prepareManifest(string $components, int $tokenTtl = 3600): array|int
+    protected function prepareManifest(string $components, int $tokenTtl = 3600, ?array $samples = null): array|int
     {
         $plugin = $this->plugin();
         $runner = $plugin->getTestRunner();
@@ -40,7 +40,7 @@ abstract class BrowserRunController extends BaseController
             );
         }
 
-        ['samples' => $samples] = $runner->sample();
+        $samples ??= $runner->sample()['samples'];
 
         $only = self::list($components);
         if ($only !== null && ($unknown = array_diff($only, array_keys($samples))) !== []) {

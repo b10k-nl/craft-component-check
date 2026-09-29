@@ -151,3 +151,104 @@ test('watch: snapshots at start, reports a template change, then the fix', { tim
     child.kill('SIGTERM');
   }
 });
+
+test('selectTargets mirrors ChangeSelection.php', async () => {
+  const { selectTargets } = await import('../lib/watch-lib.mjs');
+  const known = ['cardsGrid', 'hero'];
+  assert.deepEqual(selectTargets({ entryTypes: ['hero'], unmapped: [] }, known), { mode: 'some', components: ['hero'], reason: '→ hero' });
+  assert.equal(selectTargets({ entryTypes: [], unmapped: ['web/app.css'] }, known).mode, 'all');
+  assert.match(selectTargets({ entryTypes: [], unmapped: ['web/app.css'] }, known).reason, /web\/app\.css changed → all/);
+  assert.equal(selectTargets({ entryTypes: ['quote'] }, known).mode, 'none');
+  assert.equal(selectTargets({ entryTypes: [] }, known).reason, 'no block is rendered through it');
+});
+
+test('filterManifest keeps only the pages and blocks of the chosen components', async () => {
+  const { filterManifest } = await import('../lib/watch-lib.mjs');
+  const m = {
+    components: { hero: {}, richText: {} },
+    pages: [
+      { id: 'p1', components: { hero: [1], richText: [2, 3] }, blocks: { 1: {}, 2: {}, 3: {} } },
+      { id: 'p2', components: { richText: [4] }, blocks: { 4: {} } },
+    ],
+  };
+  const f = filterManifest(m, ['hero']);
+  assert.equal(f.pages.length, 1);
+  assert.deepEqual(f.pages[0].components, { hero: [1] });
+  assert.deepEqual(Object.keys(f.pages[0].blocks), ['1']);
+  assert.deepEqual(Object.keys(f.components), ['hero']);
+});
+
+test('watch with Component Map: a save re-checks only the block it affects', { timeout: 60000 }, async (t) => {
+  if (!loaded) return t.skip('playwright/chromium not installed');
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cc-watch-map-'));
+  fs.mkdirSync(path.join(dir, 'templates'));
+  fs.writeFileSync(path.join(dir, 'templates', 'hero.twig'), '<h1>Hero heading</h1>');
+  fs.writeFileSync(path.join(dir, 'templates', 'rich.twig'), '<p>Rich text</p>');
+  // Stands in for `php craft component-map/impact --json <files>`.
+  const fakeImpact = path.join(dir, 'impact.mjs');
+  fs.writeFileSync(fakeImpact, `
+    const files = (process.argv.at(-1) || '').split(',');
+    const entryTypes = files.some((f) => f.endsWith('hero.twig')) ? ['hero'] : [];
+    const unmapped = files.filter((f) => f.endsWith('.css'));
+    process.stdout.write(JSON.stringify({ status: 'ok', entryTypes, unmapped }));
+  `);
+
+  const srv = http.createServer((req, res) => {
+    const hero = fs.readFileSync(path.join(dir, 'templates', 'hero.twig'), 'utf8');
+    const rich = fs.readFileSync(path.join(dir, 'templates', 'rich.twig'), 'utf8');
+    res.writeHead(200, { 'content-type': 'text/html' });
+    res.end(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">
+      <!--cc:start hero 1--><section>${hero}</section><!--cc:end 1-->
+      <!--cc:start richText 2--><section>${rich}</section><!--cc:end 2-->`);
+  });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  const url = `http://127.0.0.1:${srv.address().port}/`;
+
+  const m = {
+    schema: 1,
+    outputDir: path.join(dir, 'latest'),
+    markers: { header: 'X-Component-Check', token: 't' },
+    viewports: { desktop: { width: 1440, height: 900 } },
+    options: { timeout: 15000, concurrency: 1, ignoreErrors: [], blockRequests: [], ignoreHttpsErrors: true, tolerance: 2 },
+    components: { hero: { label: 'Hero' }, richText: { label: 'Rich Text' } },
+    pages: [{ id: 'p1', url, title: 'Home', components: { hero: [1], richText: [2] }, blocks: { 1: {}, 2: {} } }],
+    snapshot: { dir: path.join(dir, 'snapshot') },
+  };
+  fs.writeFileSync(path.join(dir, 'manifest.json'), JSON.stringify(m));
+
+  const child = spawn(process.execPath, [
+    path.join(here, '..', 'watch.mjs'),
+    '--manifest', path.join(dir, 'manifest.json'),
+    '--path', path.join(dir, 'templates'),
+    '--interval', '200',
+    '--impact', JSON.stringify([process.execPath, fakeImpact]),
+  ], { cwd: path.join(here, '..', '..'), stdio: ['ignore', 'pipe', 'pipe'] });
+  let output = '';
+  child.stdout.on('data', (d) => { output += d; });
+  child.stderr.on('data', (d) => { output += d; });
+  const waitFor = async (re, ms = 20000) => {
+    const start = Date.now();
+    while (!re.test(output)) {
+      if (Date.now() - start > ms) throw new Error(`Timed out waiting for ${re}\n---\n${output}`);
+      await new Promise((r) => setTimeout(r, 100));
+    }
+  };
+
+  try {
+    await waitFor(/Component Map is installed/);
+    await waitFor(/Watching/);
+
+    fs.writeFileSync(path.join(dir, 'templates', 'hero.twig'), '<h1 style="color:rgb(200,0,0)">Hero heading</h1>');
+    await waitFor(/hero\.twig changed → hero[\s\S]*Hero\s+desktop ✕/);
+    const run = output.slice(output.lastIndexOf('hero.twig changed'));
+    assert.doesNotMatch(run.split('✕ 1 of')[0], /Rich Text/, 'rich text was not re-run');
+
+    fs.writeFileSync(path.join(dir, 'templates', 'rich.twig'), '<p>Rich text, edited</p>');
+    await waitFor(/rich\.twig changed — no block is rendered through it, nothing to check/);
+  } finally {
+    child.kill('SIGTERM');
+    srv.close();
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
