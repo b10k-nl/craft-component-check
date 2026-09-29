@@ -39,6 +39,30 @@ class ChangeSelectionTest extends TestCase
         $this->assertStringContainsString('quote', $none['reason']);
     }
 
+    public function testToolingAndDocsDoNotForceAFullRun(): void
+    {
+        // What a local dev setup typically has uncommitted.
+        $s = ChangeSelection::fromImpact([
+            'entryTypes' => ['hero'],
+            'unmapped' => ['composer.json', 'composer.lock', 'config/project/project.yaml', 'package.json', '.ddev/config.yaml', 'README.md'],
+        ], self::KNOWN);
+
+        $this->assertSame('some', $s['mode']);
+        $this->assertSame(['hero'], $s['components']);
+        $this->assertCount(6, $s['ignored']);
+        $this->assertStringContainsString('Ignored, not front-end: composer.json, composer.lock, config/project/project.yaml +3 more.', $s['reason']);
+    }
+
+    public function testWhatCountsAsFrontEnd(): void
+    {
+        foreach (['web/dist/app.css', 'src/css/site.scss', 'src/js/app.ts', 'modules/Module.php', 'config/general.php', 'web/index.php'] as $f) {
+            $this->assertTrue(ChangeSelection::isFrontEndFile($f), $f);
+        }
+        foreach (['.env', '.github/workflows/ci.yml', 'docs/notes.md', 'yarn.lock', 'storage/logs/web.log', 'vendor/x/y.php', 'config/project/entryTypes/hero.yaml'] as $f) {
+            $this->assertFalse(ChangeSelection::isFrontEndFile($f), $f);
+        }
+    }
+
     public function testNothingRenderedThroughTheChange(): void
     {
         $s = ChangeSelection::fromImpact(['entryTypes' => [], 'unmapped' => []], self::KNOWN);

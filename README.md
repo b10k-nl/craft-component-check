@@ -153,8 +153,13 @@ Testing 1 component(s) on 1 page(s) × 2 viewport(s)
 
 - Changing `_components/card.twig` tests the blocks that render cards, not
   the whole site. Changing the dispatcher or a layout tests every block.
-- Changing CSS, JS or PHP tests everything: any page can look different, and
-  no map can say which.
+- Changing CSS, JS or PHP — or anything built into `web/` — tests
+  everything: any page can look different, and no map can say which.
+- Files that never reach the browser are ignored and listed: docs, dotfiles
+  (`.ddev/`, `.github/`, `.env`), `composer.json`/`.lock`, `package.json` and
+  other lockfiles, `config/project/` (Component Map already turns content model
+  changes into the blocks they affect). After a `composer update`, run a full
+  `test`.
 - If nothing you changed renders a block, nothing runs (exit code `0`).
 
 `watch` without components uses it too: each save re-checks only the blocks

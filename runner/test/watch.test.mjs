@@ -252,3 +252,10 @@ test('watch with Component Map: a save re-checks only the block it affects', { t
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('isFrontEndFile mirrors ChangeSelection.php', async () => {
+  const { isFrontEndFile, selectTargets } = await import('../lib/watch-lib.mjs');
+  for (const f of ['web/dist/app.css', '/var/www/html/web/dist/app.js', 'modules/Module.php']) assert.equal(isFrontEndFile(f), true, f);
+  for (const f of ['.env', 'composer.lock', 'README.md', '/var/www/html/storage/x.json', 'config/project/project.yaml']) assert.equal(isFrontEndFile(f), false, f);
+  assert.equal(selectTargets({ entryTypes: ['hero'], unmapped: ['composer.lock'] }, ['hero', 'x']).mode, 'some');
+});
