@@ -87,7 +87,12 @@ class WatchController extends BrowserRunController
             $this->stderr('Not watching (not found): ' . implode(', ', $missing) . "\n", Console::FG_YELLOW);
         }
 
-        $exit = $runner->watch($manifest, array_values(array_unique($paths)), $settings->watchIgnore, $this->keepSnapshot, $this->headed);
+        // With Component Map installed and no components named, each save
+        // re-checks only the blocks rendered through the changed file.
+        $bridge = $plugin->getComponentMap();
+        $impact = $components === '' && $bridge->isAvailable() ? $bridge->impactCommand() : null;
+
+        $exit = $runner->watch($manifest, array_values(array_unique($paths)), $settings->watchIgnore, $this->keepSnapshot, $this->headed, $impact);
 
         if ($exit === 127) {
             return $this->error('Could not start Node. Run `php craft component-check/doctor`.');

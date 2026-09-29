@@ -4,6 +4,7 @@ namespace b10k\componentcheck;
 
 use b10k\componentcheck\models\Settings;
 use b10k\componentcheck\services\ActivationPolicy;
+use b10k\componentcheck\services\ComponentMapBridge;
 use b10k\componentcheck\services\ManifestBuilder;
 use b10k\componentcheck\services\Markers;
 use b10k\componentcheck\services\Sampler;
@@ -44,6 +45,7 @@ class Plugin extends BasePlugin
                 'manifestBuilder' => ManifestBuilder::class,
                 'markers' => Markers::class,
                 'testRunner' => TestRunner::class,
+                'componentMap' => ComponentMapBridge::class,
             ],
         ];
     }
@@ -112,6 +114,16 @@ class Plugin extends BasePlugin
     {
         /** @var TestRunner $service */
         $service = $this->get('testRunner');
+        return $service;
+    }
+
+    /**
+     * Component Map, when installed: which components a change affects.
+     */
+    public function getComponentMap(): ComponentMapBridge
+    {
+        /** @var ComponentMapBridge $service */
+        $service = $this->get('componentMap');
         return $service;
     }
 

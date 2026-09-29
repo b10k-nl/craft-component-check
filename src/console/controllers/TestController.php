@@ -3,6 +3,7 @@
 namespace b10k\componentcheck\console\controllers;
 
 use b10k\componentcheck\services\ActivationPolicy;
+use b10k\componentcheck\services\ChangeSelection;
 use b10k\componentcheck\services\ResultsReport;
 use craft\helpers\Console;
 
@@ -13,6 +14,11 @@ use craft\helpers\Console;
  *     php craft component-check/test hero
  *     php craft component-check/test hero,cards --viewport=mobile
  *     php craft component-check/test --json
+ *     php craft component-check/test --changed        # what your uncommitted changes affect
+ *     php craft component-check/test --since=main     # what your branch affects
+ *
+ * --changed and --since ask Component Map (if installed) which blocks the
+ * changed files are rendered through.
  *
  * If a snapshot exists (`component-check/snapshot`), every block is also
  * compared against it and anything that changed fails.
@@ -26,9 +32,21 @@ class TestController extends BrowserRunController
      */
     public bool $noSnapshot = false;
 
+    /**
+     * @var bool Test only the components your uncommitted changes affect
+     * (needs Component Map).
+     */
+    public bool $changed = false;
+
+    /**
+     * @var string Test only the components changed since this branch, tag or
+     * commit — committed or not (needs Component Map).
+     */
+    public string $since = '';
+
     public function options($actionID): array
     {
-        return array_merge(parent::options($actionID), ['noSnapshot']);
+        return array_merge(parent::options($actionID), ['noSnapshot', 'changed', 'since']);
     }
 
     public function optionAliases(): array
@@ -45,12 +63,42 @@ class TestController extends BrowserRunController
             return $refusal;
         }
 
-        $manifest = $this->prepareManifest($components);
+        $runner = $this->plugin()->getTestRunner();
+        $samples = null;
+        $selection = null;
+
+        if ($this->changed || trim($this->since) !== '') {
+            $samples = $runner->sample()['samples'];
+            try {
+                $impact = $this->plugin()->getComponentMap()->impact(
+                    trim($this->since) !== '' ? ['--since=' . trim($this->since)] : ['--git'],
+                );
+            } catch (\RuntimeException $e) {
+                return $this->error($e->getMessage());
+            }
+
+            $selection = ChangeSelection::fromImpact($impact, array_keys($samples));
+            $explicit = self::list($components) ?? [];
+
+            if ($selection['mode'] === ChangeSelection::NONE && $explicit === []) {
+                if ($this->json) {
+                    $this->writeJson(['status' => 'passed', 'passed' => 0, 'failed' => 0, 'skipped' => 0, 'warnings' => [], 'components' => [], 'failures' => [], 'selection' => $selection]);
+                } else {
+                    $this->stdout($selection['reason'] . " Nothing to test.\n", Console::FG_GREEN);
+                }
+                return self::EXIT_PASSED;
+            }
+
+            if (!$this->json) {
+                $this->stdout($selection['reason'] . "\n", Console::FG_GREY);
+            }
+            $components = implode(',', array_unique([...$explicit, ...$selection['components']]));
+        }
+
+        $manifest = $this->prepareManifest($components, 3600, $samples);
         if (is_int($manifest)) {
             return $manifest;
         }
-
-        $runner = $this->plugin()->getTestRunner();
         $snapshotAt = $this->noSnapshot || $manifest['markers'] === null ? null : $runner->snapshotTakenAt();
         if ($snapshotAt !== null) {
             $manifest['snapshot'] = ['action' => 'compare', 'dir' => $runner->snapshotDir()];
@@ -80,6 +128,7 @@ class TestController extends BrowserRunController
                 'outputDir' => $run['outputDir'],
                 'manifest' => $run['manifestPath'],
                 'results' => $run['resultsPath'],
+                'selection' => $selection,
             ]);
         } else {
             $this->stdout("\n");
