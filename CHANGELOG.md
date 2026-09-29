@@ -3,9 +3,9 @@
 All notable changes to Component Check are documented here. This project
 adheres to [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 1.0.0 - 2026-09-29
 
-First working draft.
+First release.
 
 ### Added
 
@@ -36,6 +36,11 @@ First working draft.
   fixed since the previous save. Keys: `r` run, `s` new snapshot, `q` quit.
   Polls for changes (`watchPaths`, `watchIgnore`, `watchInterval`), so it works
   across the DDEV mount.
+- With [Component Map](https://plugins.craftcms.com/component-map) installed:
+  `test --changed` (uncommitted changes) and `test --since=<branch>` test only
+  the blocks rendered through the changed templates — everything when CSS, JS
+  or PHP changed — and `watch` re-checks only the blocks a saved file affects.
+- `php craft component-check` lists the commands and the current mode.
 - Layout heuristics — sideways scrolling, overflow, text cut off by
   `overflow: hidden` — are warnings, not failures: they cannot know what the
   design intends. A change against a snapshot fails instead.
