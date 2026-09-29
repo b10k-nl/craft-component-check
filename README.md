@@ -82,6 +82,14 @@ php craft component-check/snapshot hero     # how the Hero blocks look now
 php craft component-check/test hero         # what changed since
 ```
 
+Nothing changed:
+
+![test: every block passes on desktop and mobile](https://raw.githubusercontent.com/b10k-nl/craft-component-check/main/docs/screenshots/3-test-passed.png)
+
+The Hero's heading got a different background:
+
+![snapshot, then test: the changed h1 background is reported on desktop and mobile](https://raw.githubusercontent.com/b10k-nl/craft-component-check/main/docs/screenshots/1-change-caught.png)
+
 A snapshot records, per block and viewport, its geometry (every element's
 size and position within the block, its text, colour, background, font, and
 whether it is cut off) and a screenshot. `test` then reports changes in words —
@@ -121,6 +129,10 @@ Watching templates, web — save a file to compare. Keys: r run · s new snapsho
   Hero  desktop ✓  mobile ✓   (mobile fixed)
   ✓ all 2 case(s) match the snapshot
 ```
+
+With [Component Map](#with-component-map-test-only-what-you-changed) installed, a save re-checks only the blocks rendered through that file:
+
+![watch: saving hero.twig re-checks only the Hero](https://raw.githubusercontent.com/b10k-nl/craft-component-check/main/docs/screenshots/2-watch.png)
 
 - The snapshot taken at start is *how it was before you started*. Press `s`
   when a change is intended and should become the new “before”.
