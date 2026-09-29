@@ -3,6 +3,16 @@
 All notable changes to Component Check are documented here. This project
 adheres to [Semantic Versioning](https://semver.org).
 
+## 1.0.2 - 2026-09-29
+
+### Fixed
+
+- `watch` with Component Map installed re-checks only the blocks a saved
+  template affects again. Component Map got no file names (Yii read the path
+  as the value of `--json`), so every save fell back to checking everything.
+- When Component Map cannot answer, `watch` shows its error message instead
+  of the whole command line.
+
 ## 1.0.1 - 2026-09-29
 
 ### Fixed
