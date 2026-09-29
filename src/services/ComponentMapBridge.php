@@ -29,11 +29,14 @@ class ComponentMapBridge extends Component
      * The command Component Map's impact runs as. Files (or --git / --since)
      * are appended by the caller.
      *
+     * `--json=1`, not `--json`: Yii reads `--json /path/to/file.twig` as the
+     * option's value, and impact then sees no files at all.
+     *
      * @return string[]
      */
     public function impactCommand(): array
     {
-        return [PHP_BINARY, (string)Craft::getAlias('@root') . DIRECTORY_SEPARATOR . 'craft', self::HANDLE . '/impact', '--json'];
+        return [PHP_BINARY, (string)Craft::getAlias('@root') . DIRECTORY_SEPARATOR . 'craft', self::HANDLE . '/impact', '--json=1'];
     }
 
     /**

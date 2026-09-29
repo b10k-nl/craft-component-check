@@ -101,7 +101,15 @@ async function targetsFor(files) {
     const { stdout } = await run(cmd, [...rest, files.join(',')], { timeout: 30000, maxBuffer: 16 * 1024 * 1024 });
     return selectTargets(JSON.parse(stdout), Object.keys(manifest.components ?? {}));
   } catch (e) {
-    return { mode: 'all', components: [], reason: `Component Map could not tell (${String(e?.message ?? e).split('\n')[0]}) → all` };
+    // The command prints {"status":"error","error":"…"} on failure; that says
+    // more than execFile's "Command failed: <the whole command line>".
+    let why = String(e?.message ?? e).split('\n')[0];
+    try {
+      why = JSON.parse(e?.stdout ?? '').error ?? why;
+    } catch {
+      if (e?.stderr) why = String(e.stderr).trim().split('\n')[0] || why;
+    }
+    return { mode: 'all', components: [], reason: `Component Map could not tell (${why}) → all` };
   }
 }
 
