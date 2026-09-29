@@ -25,7 +25,7 @@ FAILED — 1 passed, 1 failed, 0 skipped
 It is not a replacement for Playwright, Pest or Craft Pest. Playwright does the
 browser work; Craft knows the content model; this plugin connects the two.
 
-> **Status:** `0.1.0-dev` — first working draft. Free (MIT).
+> Free (MIT). Craft CMS 5, for local development, staging and CI.
 
 ---
 
@@ -136,6 +136,33 @@ Watching templates, web — save a file to compare. Keys: r run · s new snapsho
   trigger a run — keep the build watcher running too.
 - Restart it after editing content in the control panel.
 
+## With Component Map: test only what you changed
+
+[Component Map](https://plugins.craftcms.com/component-map) knows which
+blocks each template is rendered through. With it installed:
+
+```bash
+php craft component-check/test --changed        # your uncommitted changes
+php craft component-check/test --since=main     # everything on your branch
+```
+
+```
+Changed files affect hero.
+Testing 1 component(s) on 1 page(s) × 2 viewport(s)
+```
+
+- Changing `_components/card.twig` tests the blocks that render cards, not
+  the whole site. Changing the dispatcher or a layout tests every block.
+- Changing CSS, JS or PHP tests everything: any page can look different, and
+  no map can say which.
+- If nothing you changed renders a block, nothing runs (exit code `0`).
+
+`watch` without components uses it too: each save re-checks only the blocks
+rendered through the file you saved.
+
+The two plugins talk through Component Map's documented JSON
+(`component-map/impact --json`), so each can be updated on its own.
+
 ## Requirements
 
 - Craft CMS 5, PHP 8.2+
@@ -200,7 +227,7 @@ Markers nest (a card inside a cards grid); `end()` closes the most recent
 | `component-check/discover [components]` | Where each component is used and which pages would be tested. `--all` lists every page, `--json` prints the manifest. | `readonly` |
 | `component-check/snapshot [components]` | Records how blocks look now, for the next `test` to compare against. `--reset`, `--viewport`, `--json`. | `full` |
 | `component-check/watch [components]` | Snapshots once, then re-checks on every save of a template or stylesheet. Keys: `r` run, `s` new snapshot, `q` quit. `--keep-snapshot`, `--paths`, `--viewport`. | `full` |
-| `component-check/test [components]` | Runs the browser checks, and compares with the snapshot if there is one. `--viewport=mobile`, `--no-snapshot`, `--json`, `--headed`. | `readonly` (page checks) / `full` (component checks, snapshots) |
+| `component-check/test [components]` | Runs the browser checks, and compares with the snapshot if there is one. `--changed` / `--since=main` test only what your changes affect (needs Component Map). `--viewport=mobile`, `--no-snapshot`, `--json`, `--headed`. | `readonly` (page checks) / `full` (component checks, snapshots) |
 | `component-check/doctor` | Checks the setup. `--json`. | any |
 
 `components` is a comma-separated list of entry type handles: `hero,cards`.
@@ -308,11 +335,12 @@ use a recent content snapshot.
 ## Coding agents
 
 The loop this plugin is built for: `snapshot <component>`, change it, run
-`test <component> --json`, read what changed, look at the before/after
-screenshots, fix or accept, run again. See [AGENTS.md](AGENTS.md) for the recipe to hand your
+`test <component> --json` (or `test --changed --json` with Component Map),
+read what changed, look at the before/after screenshots, fix or accept, run
+again. See [AGENTS.md](AGENTS.md) for the recipe to hand your
 agent.
 
-## Limitations (v0.1)
+## Limitations
 
 - **Matrix only.** Neo, Super Table and custom page builders are not discovered
   yet.

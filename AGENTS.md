@@ -32,6 +32,10 @@ template, CSS or JavaScript that affects page-builder (Matrix) blocks.
 
    Exit code `0` = passed, `1` = regressions, `2` = could not run.
 
+   With Component Map installed you do not have to name them:
+   `php craft component-check/test --changed --json` tests what your
+   uncommitted changes affect (`selection.reason` says why).
+
 4. **On exit code 2**, read `error` and run
    `php craft component-check/doctor --json`. Report setup problems to the
    human instead of working around them. Never change the plugin's `mode` to
