@@ -144,7 +144,7 @@ export function formatRun(manifest, state, previous = null) {
  * @returns {{mode: 'all'|'some'|'none', components: string[], reason: string}}
  */
 export function selectTargets(impact, known) {
-  const unmapped = (impact?.unmapped ?? []).filter((f) => typeof f === 'string');
+  const unmapped = (impact?.unmapped ?? []).filter((f) => typeof f === 'string' && isFrontEndFile(f));
   if (unmapped.length > 0) {
     return { mode: 'all', components: [...known], reason: `${unmapped.length === 1 ? unmapped[0] : `${unmapped.length} non-template files`} changed → all` };
   }
@@ -173,4 +173,16 @@ export function filterManifest(manifest, components) {
   }
   const componentsMeta = Object.fromEntries(Object.entries(manifest.components ?? {}).filter(([c]) => keep.has(c)));
   return { ...manifest, pages, components: componentsMeta };
+}
+
+/** Mirrors ChangeSelection::isFrontEndFile(): can this non-template file change how pages look? */
+export function isFrontEndFile(file) {
+  const p = String(file).replace(/\\/g, '/').replace(/^\/+/, '');
+  const segments = p.split('/');
+  if (segments.some((s) => s.startsWith('.'))) return false;
+  if (['storage', 'vendor', 'node_modules', 'config/project'].some((d) => p === d || p.startsWith(`${d}/`) || p.includes(`/${d}/`))) return false;
+  const base = segments.at(-1).toLowerCase();
+  if (['composer.json', 'composer.lock', 'package.json', 'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', 'bun.lockb', 'license', 'license.md'].includes(base)) return false;
+  const ext = base.includes('.') ? base.split('.').pop() : '';
+  return !['md', 'markdown', 'txt', 'rst', 'log', 'lock'].includes(ext);
 }

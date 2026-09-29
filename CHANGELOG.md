@@ -3,6 +3,17 @@
 All notable changes to Component Check are documented here. This project
 adheres to [Semantic Versioning](https://semver.org).
 
+## 1.0.1 - 2026-09-29
+
+### Fixed
+
+- `test --changed`, `--since` and `watch` no longer test everything because
+  of files that never reach the browser. Docs, dotfiles (`.ddev/`, `.github/`,
+  `.env`), `composer.json`/`.lock`, `package.json` and other lockfiles, and
+  `config/project/` are listed as ignored instead; CSS, JS, PHP and anything
+  in `web/` still test every component. A local setup with an uncommitted
+  `composer.lock` used to make every `--changed` run a full one.
+
 ## 1.0.0 - 2026-09-29
 
 First release.
