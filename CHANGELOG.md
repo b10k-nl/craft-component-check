@@ -3,6 +3,24 @@
 All notable changes to Component Check are documented here. This project
 adheres to [Semantic Versioning](https://semver.org).
 
+## 1.1.0 - 2026-10-05
+
+### Added
+
+- **A shared baseline for CI.** The new `snapshotPath` setting (env
+  `COMPONENT_CHECK_SNAPSHOT_PATH`) and `--snapshot-path` option on `snapshot`,
+  `test` and `watch` keep snapshots in a folder of your choice — commit it, and
+  CI compares every pull request against it. See “A shared baseline” in the
+  README for a GitHub Actions job.
+- Snapshots record the browser and OS that took them. When `test` or `watch`
+  compares in another environment, it says so, so that rendering differences
+  are not taken for your change.
+
+### Changed
+
+- `snapshot --reset` deletes only the files an earlier snapshot wrote, not
+  the whole folder — it may be a folder in your repository.
+
 ## 1.0.2 - 2026-09-29
 
 ### Fixed

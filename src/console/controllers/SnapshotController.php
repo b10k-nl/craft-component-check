@@ -4,7 +4,6 @@ namespace b10k\componentcheck\console\controllers;
 
 use b10k\componentcheck\services\ActivationPolicy;
 use craft\helpers\Console;
-use craft\helpers\FileHelper;
 
 /**
  * Records how blocks look *now*, so the next `test` can say what changed.
@@ -13,9 +12,10 @@ use craft\helpers\FileHelper;
  *     …edit templates / CSS…
  *     php craft component-check/test hero          ← what changed since
  *
- * Kept locally in storage/component-check/snapshot — per machine, per
- * database, never committed. Snapshotting some components keeps the others;
- * `--reset` starts over.
+ * Kept locally in storage/component-check/snapshot by default — per machine,
+ * per database. With the snapshotPath setting or `--snapshot-path` it can be a
+ * folder in the repository instead: a shared baseline CI compares against.
+ * Snapshotting some components keeps the others; `--reset` starts over.
  *
  * Needs mode `full`: blocks are located by their markers.
  */
@@ -49,9 +49,11 @@ class SnapshotController extends BrowserRunController
         }
 
         $runner = $this->plugin()->getTestRunner();
-        $dir = $runner->snapshotDir();
-        if ($this->reset && is_dir($dir)) {
-            FileHelper::removeDirectory($dir);
+        $dir = $this->snapshotDir();
+        if ($this->reset) {
+            // Only what an earlier snapshot wrote: the folder may be one in
+            // the repository, next to other files.
+            $runner->clearSnapshot($dir);
         }
         $manifest['snapshot'] = ['action' => 'record', 'dir' => $dir];
 

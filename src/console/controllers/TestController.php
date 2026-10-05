@@ -99,9 +99,10 @@ class TestController extends BrowserRunController
         if (is_int($manifest)) {
             return $manifest;
         }
-        $snapshotAt = $this->noSnapshot || $manifest['markers'] === null ? null : $runner->snapshotTakenAt();
+        $snapshotDir = $this->snapshotDir();
+        $snapshotAt = $this->noSnapshot || $manifest['markers'] === null ? null : $runner->snapshotTakenAt($snapshotDir);
         if ($snapshotAt !== null) {
-            $manifest['snapshot'] = ['action' => 'compare', 'dir' => $runner->snapshotDir()];
+            $manifest['snapshot'] = ['action' => 'compare', 'dir' => $snapshotDir];
         }
 
         if (!$this->json) {
@@ -140,6 +141,9 @@ class TestController extends BrowserRunController
                     default => null,
                 };
                 $color === null ? $this->stdout($line . "\n") : $this->stdout($line . "\n", $color);
+            }
+            if (($note = ResultsReport::environmentNote($run['results']['snapshot']['environment'] ?? null)) !== null) {
+                $this->stdout("\n⚠ {$note}\n", Console::FG_YELLOW);
             }
             $this->stdout("\nArtifacts: {$run['outputDir']}\n", Console::FG_GREY);
         }

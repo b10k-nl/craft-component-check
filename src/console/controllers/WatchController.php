@@ -66,7 +66,8 @@ class WatchController extends BrowserRunController
             return $this->error('Watch mode needs component markers, but no signing key is configured (securityKey).');
         }
 
-        if ($this->keepSnapshot && $runner->snapshotTakenAt() === null) {
+        $snapshotDir = $this->snapshotDir();
+        if ($this->keepSnapshot && $runner->snapshotTakenAt($snapshotDir) === null) {
             return $this->error('There is no snapshot to keep yet. Run without --keep-snapshot, or run component-check/snapshot first.');
         }
 
@@ -92,7 +93,7 @@ class WatchController extends BrowserRunController
         $bridge = $plugin->getComponentMap();
         $impact = $components === '' && $bridge->isAvailable() ? $bridge->impactCommand() : null;
 
-        $exit = $runner->watch($manifest, array_values(array_unique($paths)), $settings->watchIgnore, $this->keepSnapshot, $this->headed, $impact);
+        $exit = $runner->watch($manifest, array_values(array_unique($paths)), $settings->watchIgnore, $this->keepSnapshot, $this->headed, $impact, $snapshotDir);
 
         if ($exit === 127) {
             return $this->error('Could not start Node. Run `php craft component-check/doctor`.');

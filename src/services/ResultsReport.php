@@ -304,4 +304,26 @@ final class ResultsReport
         $query = parse_url($url, PHP_URL_QUERY);
         return (is_string($path) && $path !== '' ? $path : '/') . (is_string($query) ? '?' . $query : '');
     }
+
+    /**
+     * One line when the snapshot was taken in another browser or OS (a
+     * baseline from a laptop, compared in CI): what looks like a change may
+     * be rendering. Null when they match or there is nothing to compare.
+     * Mirrors environmentNote() in runner/lib/watch-lib.mjs.
+     *
+     * @param array<string, mixed>|null $environment results.snapshot.environment
+     */
+    public static function environmentNote(?array $environment): ?string
+    {
+        if ($environment === null || ($environment['matches'] ?? true) !== false) {
+            return null;
+        }
+        $keys = array_values(array_filter((array)($environment['differs'] ?? []), 'is_string'));
+        $pick = static fn(string $side) => implode(', ', array_map(
+            static fn(string $k) => (string)($environment[$side][$k] ?? '?'),
+            $keys,
+        ));
+        return 'The snapshot was taken with ' . $pick('snapshot') . '; this run uses ' . $pick('current') . '. '
+            . 'Differences may be rendering, not your change — re-take the snapshot here.';
+    }
 }

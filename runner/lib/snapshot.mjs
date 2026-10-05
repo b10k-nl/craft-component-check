@@ -29,15 +29,39 @@ export function loadIndex(dir) {
 }
 
 /** Merges new entries into the index on disk (a snapshot of `hero` keeps `cards`). */
-export function writeIndex(dir, entries) {
+export function writeIndex(dir, entries, environment = null) {
   const index = loadIndex(dir) ?? { schema: 1, blocks: {} };
   for (const entry of entries) {
     index.blocks[snapshotKey(entry.blockId, entry.viewport)] = entry;
   }
   index.updatedAt = new Date().toISOString();
+  if (environment) index.environment = environment;
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, INDEX_FILE), JSON.stringify(index, null, 2));
   return index;
+}
+
+/**
+ * What renders the pages: the same layout can measure differently in another
+ * Chromium or on another OS (fonts, hinting). Stored with a snapshot so a
+ * comparison made elsewhere — a baseline from a laptop checked in CI — can
+ * say so instead of passing rendering differences off as your change.
+ */
+export function environmentOf(browser) {
+  let version = null;
+  try {
+    version = browser?.version?.() ?? null;
+  } catch {
+    // a closed or fake browser
+  }
+  return { browser: version ? `chromium ${version}` : null, platform: `${process.platform}-${process.arch}` };
+}
+
+/** Null when there is nothing to compare; otherwise whether both match. */
+export function environmentDiff(snapshotEnv, currentEnv) {
+  if (!snapshotEnv || !currentEnv) return null;
+  const differs = ['browser', 'platform'].filter((k) => snapshotEnv[k] && currentEnv[k] && snapshotEnv[k] !== currentEnv[k]);
+  return { matches: differs.length === 0, snapshot: snapshotEnv, current: currentEnv, differs };
 }
 
 export function componentOf(target, blockId) {

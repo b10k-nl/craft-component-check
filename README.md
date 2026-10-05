@@ -100,9 +100,10 @@ container that moves does not report every child as moved.
 - **Content edits are not regressions.** Craft knows when each block was last
   saved. If an editor changed a block after the snapshot, it is not compared
   — `test` says so instead of flagging it.
-- **Local by design.** Snapshots live in `storage/component-check/snapshot/`,
-  for this machine and this database. Nothing is committed. `snapshot hero`
-  keeps the snapshots of other components; `--reset` starts over.
+- **Local by default.** Snapshots live in `storage/component-check/snapshot/`,
+  for this machine and this database. `snapshot hero` keeps the snapshots of
+  other components; `--reset` starts over. To share one with your team and CI,
+  see [A shared baseline](#a-shared-baseline).
 - **No snapshot, no comparison:** `test` then checks for errors only.
   `--no-snapshot` skips the comparison on purpose.
 - Needs mode `full` (blocks are found by their markers).
@@ -242,9 +243,9 @@ Markers nest (a card inside a cards grid); `end()` closes the most recent
 | Command | What it does | Needs mode |
 |---|---|---|
 | `component-check/discover [components]` | Where each component is used and which pages would be tested. `--all` lists every page, `--json` prints the manifest. | `readonly` |
-| `component-check/snapshot [components]` | Records how blocks look now, for the next `test` to compare against. `--reset`, `--viewport`, `--json`. | `full` |
-| `component-check/watch [components]` | Snapshots once, then re-checks on every save of a template or stylesheet. Keys: `r` run, `s` new snapshot, `q` quit. `--keep-snapshot`, `--paths`, `--viewport`. | `full` |
-| `component-check/test [components]` | Runs the browser checks, and compares with the snapshot if there is one. `--changed` / `--since=main` test only what your changes affect (needs Component Map). `--viewport=mobile`, `--no-snapshot`, `--json`, `--headed`. | `readonly` (page checks) / `full` (component checks, snapshots) |
+| `component-check/snapshot [components]` | Records how blocks look now, for the next `test` to compare against. `--reset`, `--viewport`, `--snapshot-path`, `--json`. | `full` |
+| `component-check/watch [components]` | Snapshots once, then re-checks on every save of a template or stylesheet. Keys: `r` run, `s` new snapshot, `q` quit. `--keep-snapshot`, `--paths`, `--viewport`, `--snapshot-path`. | `full` |
+| `component-check/test [components]` | Runs the browser checks, and compares with the snapshot if there is one. `--changed` / `--since=main` test only what your changes affect (needs Component Map). `--viewport=mobile`, `--no-snapshot`, `--snapshot-path`, `--json`, `--headed`. | `readonly` (page checks) / `full` (component checks, snapshots) |
 | `component-check/doctor` | Checks the setup. `--json`. | any |
 
 `components` is a comma-separated list of entry type handles: `hero,cards`.
@@ -326,6 +327,7 @@ Copy `vendor/b10k/craft-component-check/src/config.php` to
 | `ignoreErrors` | `[]` | Substrings of JS errors to ignore |
 | `blockRequests` | GTM, GA, Facebook, Hotjar | Blocked in the browser |
 | `outputPath` | `@storage/component-check` | Artifacts go to `…/latest/` |
+| `snapshotPath` | `''` | Where snapshots live. Empty = `snapshot/` inside `outputPath`, local. A folder in the repository makes a [shared baseline](#a-shared-baseline). Env: `COMPONENT_CHECK_SNAPSHOT_PATH` |
 | `concurrency` | `4` | Pages in parallel |
 | `tolerance` | `2` | Pixels an element may move or resize before a snapshot comparison reports it |
 | `watchPaths` | `@templates`, `@webroot` | What `watch` watches |
@@ -348,6 +350,93 @@ Copy `vendor/b10k/craft-component-check/src/config.php` to
 
 The results are only as representative as the database the job runs against:
 use a recent content snapshot.
+
+### A shared baseline
+
+Without a snapshot, CI checks for errors: broken pages, missing blocks, failed
+scripts. To also catch *visual* changes on every pull request, commit a
+snapshot to the repository and let CI compare against it:
+
+```php
+// config/component-check.php
+return [
+    'snapshotPath' => '@root/tests/component-check',
+];
+```
+
+or per command: `--snapshot-path=tests/component-check` (relative to the
+project root). Then:
+
+```bash
+php craft component-check/snapshot          # record the baseline
+git add tests/component-check && git commit -m "Component Check baseline"
+```
+
+From then on `test` and `watch` compare against it, and so does CI. When a
+change is intended, re-record the components it touched (`snapshot hero`) and
+commit the new baseline with the change — the pull request then shows the
+before/after screenshots of what was accepted.
+
+A baseline is tied to two things, so keep them together:
+
+- **The database.** Blocks are matched by ID, and a block whose content was
+  edited after the baseline is skipped, not compared. Record the baseline
+  against the same content dump CI restores, and re-record when you refresh
+  the dump.
+- **The browser and OS.** The same page can measure a pixel differently in
+  another Chromium or with other fonts. The snapshot records what rendered it;
+  when `test` runs somewhere else it says so (`The snapshot was taken with
+  chromium 141…, darwin-arm64; this run uses … linux-x64`), so rendering
+  differences are not mistaken for your change. DDEV and GitHub's
+  `ubuntu-latest` are both Linux; with the same Playwright version they
+  usually agree. If they do not, record the baseline in CI (a manually
+  triggered job running `snapshot` and committing the folder) instead of on
+  your laptop.
+
+A GitHub Actions job against a content dump, using Craft's built-in server:
+
+```yaml
+jobs:
+  components:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env: { MYSQL_ROOT_PASSWORD: root, MYSQL_DATABASE: craft }
+        ports: ['3306:3306']
+        options: --health-cmd="mysqladmin ping" --health-interval=5s --health-retries=10
+    env:
+      CRAFT_DB_DRIVER: mysql
+      CRAFT_DB_SERVER: 127.0.0.1
+      CRAFT_DB_PORT: 3306
+      CRAFT_DB_DATABASE: craft
+      CRAFT_DB_USER: root
+      CRAFT_DB_PASSWORD: root
+      CRAFT_SECURITY_KEY: ${{ secrets.CRAFT_SECURITY_KEY }}
+      COMPONENT_CHECK_MODE: full
+      COMPONENT_CHECK_BASE_URL: http://localhost:8080
+      PHP_CLI_SERVER_WORKERS: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.2' }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: composer install --no-interaction --prefer-dist
+      - run: npm ci && npx playwright install --with-deps chromium
+      - run: php craft db/restore tests/content.sql   # your content dump
+      - run: php craft up --interactive=0
+      - run: php craft serve localhost:8080 > /dev/null 2>&1 &
+      - run: php craft component-check/test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: component-check
+          path: storage/component-check/latest
+```
+
+On failure the artifact holds, for every changed block, the screenshot from
+the baseline next to the one from this run, and a Playwright trace.
 
 ## Coding agents
 

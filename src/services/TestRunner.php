@@ -5,6 +5,7 @@ namespace b10k\componentcheck\services;
 use b10k\componentcheck\Plugin;
 use Craft;
 use craft\base\Component;
+use craft\helpers\App;
 use craft\helpers\FileHelper;
 use craft\helpers\Json;
 
@@ -142,13 +143,13 @@ class TestRunner extends Component
      * @param string[]|null $impactCommand Component Map's impact command, to
      *        re-check only the blocks a saved file affects.
      */
-    public function watch(array $manifest, array $paths, array $ignore, bool $keepSnapshot, bool $headed = false, ?array $impactCommand = null): int
+    public function watch(array $manifest, array $paths, array $ignore, bool $keepSnapshot, bool $headed = false, ?array $impactCommand = null, ?string $snapshotDir = null): int
     {
         $outputDir = $this->outputDir();
         FileHelper::createDirectory($outputDir);
         FileHelper::clearDirectory($outputDir);
 
-        $manifest['snapshot'] = ['action' => 'watch', 'dir' => $this->snapshotDir()];
+        $manifest['snapshot'] = ['action' => 'watch', 'dir' => $snapshotDir ?? $this->snapshotDir()];
         $manifestPath = $outputDir . DIRECTORY_SEPARATOR . self::MANIFEST_FILE;
         file_put_contents($manifestPath, Json::encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 
@@ -195,25 +196,84 @@ class TestRunner extends Component
     }
 
     /**
-     * Local before/after snapshots. Never cleared by a test run; `snapshot`
-     * adds to it (a snapshot of `hero` keeps the one of `cards`).
+     * Where before/after snapshots are kept. Never cleared by a test run;
+     * `snapshot` adds to it (a snapshot of `hero` keeps the one of `cards`).
+     *
+     * @param string|null $path `--snapshot-path`, overriding the setting.
      */
-    public function snapshotDir(): string
+    public function snapshotDir(?string $path = null): string
     {
-        return $this->basePath() . DIRECTORY_SEPARATOR . 'snapshot';
+        $path = trim((string)($path ?? ''));
+        if ($path === '') {
+            $path = trim(App::parseEnv(Plugin::getInstance()->getSettings()->snapshotPath) ?? '');
+        }
+        if ($path === '') {
+            return $this->basePath() . DIRECTORY_SEPARATOR . 'snapshot';
+        }
+        $path = (string)Craft::getAlias($path);
+        if (!self::isAbsolute($path)) {
+            $path = Craft::getAlias('@root') . DIRECTORY_SEPARATOR . $path;
+        }
+        return rtrim($path, '/\\');
     }
 
     /**
      * When the snapshot was last written, or null if there is none.
      */
-    public function snapshotTakenAt(): ?string
+    public function snapshotTakenAt(?string $dir = null): ?string
     {
-        $index = $this->snapshotDir() . DIRECTORY_SEPARATOR . 'index.json';
-        if (!is_file($index)) {
+        $index = self::snapshotIndex($dir ?? $this->snapshotDir());
+        return is_string($index['updatedAt'] ?? null) ? $index['updatedAt'] : null;
+    }
+
+    /**
+     * Deletes a snapshot: only the files it lists, then its index. Never the
+     * folder itself — it may be a folder in the repository with other files.
+     *
+     * @return int Files deleted.
+     */
+    public function clearSnapshot(string $dir): int
+    {
+        $index = self::snapshotIndex($dir);
+        if ($index === null) {
+            return 0;
+        }
+        $deleted = 0;
+        $real = realpath($dir);
+        foreach ((array)($index['blocks'] ?? []) as $entry) {
+            foreach (['geometry', 'screenshot'] as $key) {
+                $file = is_array($entry) && is_string($entry[$key] ?? null) ? realpath($dir . DIRECTORY_SEPARATOR . $entry[$key]) : false;
+                // Only inside the snapshot folder, whatever the index says.
+                if ($file !== false && $real !== false && str_starts_with($file, $real . DIRECTORY_SEPARATOR) && @unlink($file)) {
+                    $deleted++;
+                }
+            }
+        }
+        @unlink($dir . DIRECTORY_SEPARATOR . 'index.json');
+        foreach (glob($dir . DIRECTORY_SEPARATOR . '*', GLOB_ONLYDIR) ?: [] as $sub) {
+            @rmdir($sub); // only if now empty
+        }
+        return $deleted;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private static function snapshotIndex(string $dir): ?array
+    {
+        $file = $dir . DIRECTORY_SEPARATOR . 'index.json';
+        if (!is_file($file)) {
             return null;
         }
-        $data = Json::decodeIfJson((string)file_get_contents($index));
-        return is_array($data) && is_string($data['updatedAt'] ?? null) ? $data['updatedAt'] : null;
+        $data = Json::decodeIfJson((string)file_get_contents($file));
+        return is_array($data) ? $data : null;
+    }
+
+    private static function isAbsolute(string $path): bool
+    {
+        // /unix, \\server\share, C:\windows or C:/windows
+        return str_starts_with($path, '/') || str_starts_with($path, '\\')
+            || (strlen($path) > 2 && ctype_alpha($path[0]) && $path[1] === ':' && in_array($path[2], ['/', '\\'], true));
     }
 
     private function basePath(): string
