@@ -18,9 +18,25 @@ abstract class BrowserRunController extends BaseController
      */
     public bool $headed = false;
 
+    /**
+     * @var string Snapshot folder for this run, overriding the snapshotPath
+     * setting — e.g. a baseline committed to the repository.
+     */
+    public string $snapshotPath = '';
+
     public function options($actionID): array
     {
-        return array_merge(parent::options($actionID), ['viewport', 'headed']);
+        return array_merge(parent::options($actionID), ['viewport', 'headed', 'snapshotPath']);
+    }
+
+    public function optionAliases(): array
+    {
+        return array_merge(parent::optionAliases(), ['snapshot-path' => 'snapshotPath']);
+    }
+
+    protected function snapshotDir(): string
+    {
+        return $this->plugin()->getTestRunner()->snapshotDir($this->snapshotPath !== '' ? $this->snapshotPath : null);
     }
 
     /**

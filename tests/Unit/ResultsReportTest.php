@@ -172,4 +172,21 @@ class ResultsReportTest extends TestCase
         $this->assertStringContainsString('✕ mobile: overflows by 24px', $text);
         $this->assertStringContainsString('FAILED — 5 passed, 1 failed, 0 skipped', $text);
     }
+
+    public function testEnvironmentNote(): void
+    {
+        $this->assertNull(ResultsReport::environmentNote(null));
+        $this->assertNull(ResultsReport::environmentNote(['matches' => true, 'differs' => []]));
+
+        $note = ResultsReport::environmentNote([
+            'matches' => false,
+            'differs' => ['browser', 'platform'],
+            'snapshot' => ['browser' => 'chromium 140.0', 'platform' => 'darwin-arm64'],
+            'current' => ['browser' => 'chromium 141.0', 'platform' => 'linux-x64'],
+        ]);
+        $this->assertSame(
+            'The snapshot was taken with chromium 140.0, darwin-arm64; this run uses chromium 141.0, linux-x64. Differences may be rendering, not your change — re-take the snapshot here.',
+            $note,
+        );
+    }
 }

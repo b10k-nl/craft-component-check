@@ -175,6 +175,17 @@ export function filterManifest(manifest, components) {
   return { ...manifest, pages, components: componentsMeta };
 }
 
+/**
+ * One line when the snapshot was taken in another browser or OS: what looks
+ * like a change may be rendering. Mirrors the note in TestController.
+ */
+export function environmentNote(env) {
+  if (!env || env.matches !== false) return null;
+  const was = env.differs.map((k) => env.snapshot[k]).join(', ');
+  const now = env.differs.map((k) => env.current[k]).join(', ');
+  return `The snapshot was taken with ${was}; this run uses ${now}. Differences may be rendering, not your change — re-take the snapshot here.`;
+}
+
 /** Mirrors ChangeSelection::isFrontEndFile(): can this non-template file change how pages look? */
 export function isFrontEndFile(file) {
   const p = String(file).replace(/\\/g, '/').replace(/^\/+/, '');

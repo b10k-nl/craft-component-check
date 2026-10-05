@@ -49,6 +49,11 @@ return [
     ],
 
     'outputPath' => '@storage/component-check',
+
+    // Where snapshots live. Empty = local, inside outputPath. A folder in
+    // your repository makes it a shared baseline for the team and CI, e.g.
+    // '@root/tests/component-check'.
+    'snapshotPath' => App::env('COMPONENT_CHECK_SNAPSHOT_PATH') ?? '',
     'nodeBinary' => 'node',
     'timeout' => 30000,
     'concurrency' => 4,

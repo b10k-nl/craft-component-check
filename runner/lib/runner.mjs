@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { buildChecks, clampClip, isMobileViewport, matchesAny, runStatus, slug, FAILED } from './checks.mjs';
 import { collectLayout, scrollThrough } from './layout.mjs';
-import { compareWithSnapshot, componentOf, loadIndex, snapshotKey, writeIndex } from './snapshot.mjs';
+import { compareWithSnapshot, componentOf, environmentDiff, environmentOf, loadIndex, snapshotKey, writeIndex } from './snapshot.mjs';
 
 /**
  * Visits every manifest page on every viewport and records what it saw.
@@ -35,6 +35,7 @@ export async function runManifest(manifest, { playwright, browser: shared = null
 
   // `watch` keeps one browser open between runs; a one-off run owns its own.
   const browser = shared ?? (await playwright.chromium.launch({ headless: !headed }));
+  const environment = environmentOf(browser);
   const runs = [];
 
   try {
@@ -55,7 +56,7 @@ export async function runManifest(manifest, { playwright, browser: shared = null
   let recorded = null;
   if (snapshot?.action === 'record') {
     const entries = runs.flatMap((r) => r.recorded ?? []);
-    writeIndex(snapshot.dir, entries);
+    writeIndex(snapshot.dir, entries, environment);
     recorded = entries.length;
   }
   for (const r of runs) delete r.recorded;
@@ -68,6 +69,7 @@ export async function runManifest(manifest, { playwright, browser: shared = null
       dir: snapshot.dir,
       recorded,
       comparedAgainst: ctx.index?.updatedAt ?? null,
+      environment: snapshot.action === 'compare' ? environmentDiff(ctx.index?.environment ?? null, environment) : null,
     } : null,
     startedAt: startedAt.toISOString(),
     finishedAt: finishedAt.toISOString(),

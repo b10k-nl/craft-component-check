@@ -17,7 +17,7 @@ import { runManifest } from './lib/runner.mjs';
 import { loadIndex } from './lib/snapshot.mjs';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { changedFiles, filterManifest, formatRun, scanFiles, selectTargets, summarize } from './lib/watch-lib.mjs';
+import { changedFiles, filterManifest, formatRun, scanFiles, selectTargets, summarize, environmentNote } from './lib/watch-lib.mjs';
 
 function parseArgs(argv) {
   const args = { manifest: null, results: null, paths: [], ignore: [], keepSnapshot: false, interval: 700, headed: false };
@@ -114,6 +114,7 @@ async function targetsFor(files) {
 }
 
 let previous = null;
+let environmentWarned = false;
 async function compare(trigger, files = null) {
   const started = Date.now();
   const targets = await targetsFor(files);
@@ -135,6 +136,11 @@ async function compare(trigger, files = null) {
   out(grey(`[${time()}] ${trigger}${targets ? ` ${targets.reason}` : ''} — ${((Date.now() - started) / 1000).toFixed(1)}s`));
   const state = summarize(scope, results);
   for (const line of formatRun(scope, state, previous)) out(line);
+  const note = environmentNote(results.snapshot?.environment);
+  if (note && !environmentWarned) {
+    out(yellow(`  ${note}`));
+    environmentWarned = true;
+  }
   // Remember every component's last result, not only the ones just re-run,
   // so "fixed" still shows when a later save touches a different block.
   previous = new Map([...(previous ?? []), ...state]);

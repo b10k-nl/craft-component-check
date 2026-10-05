@@ -52,6 +52,11 @@ template, CSS or JavaScript that affects page-builder (Matrix) blocks.
    is **not**, fix the template or CSS and rerun step 3. Do not retake the
    snapshot to make a failure go away.
 
+   If the project commits its snapshot as a shared baseline (the
+   `snapshotPath` setting, e.g. `tests/component-check/`), that folder is the
+   team's reference: never re-record it on your own. Re-record only the
+   components an intended change touched, and only after the human agrees.
+
 6. **Read `warnings` too.** They are heuristics (sideways scrolling, overflow,
    cut-off text) and do not fail the run, but mention new ones to the human.
 

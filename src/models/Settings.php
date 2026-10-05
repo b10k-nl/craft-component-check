@@ -80,6 +80,15 @@ class Settings extends Model
     public string $outputPath = '@storage/component-check';
 
     /**
+     * @var string Where snapshots are kept. Empty = `snapshot/` inside
+     * `outputPath` (local, per machine). Point it at a folder in your
+     * repository, e.g. `@root/tests/component-check`, to commit the snapshot
+     * as a shared baseline that CI compares every change against. Aliases,
+     * env vars and paths relative to the project root work.
+     */
+    public string $snapshotPath = '';
+
+    /**
      * @var string Node binary used to run the bundled Playwright runner.
      */
     public string $nodeBinary = 'node';
@@ -142,7 +151,7 @@ class Settings extends Model
             ['tolerance', 'integer', 'min' => 0],
             ['watchInterval', 'integer', 'min' => 200],
             ['ignoreHttpsErrors', 'boolean'],
-            [['baseUrl', 'outputPath', 'nodeBinary'], 'trim'],
+            [['baseUrl', 'outputPath', 'snapshotPath', 'nodeBinary'], 'trim'],
             ['viewports', 'validateViewports'],
         ];
     }
