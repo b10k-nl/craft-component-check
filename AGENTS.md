@@ -68,6 +68,15 @@ template, CSS or JavaScript that affects page-builder (Matrix) blocks.
 
    A shared partial can break a component you did not touch.
 
+## Without a shell: Craft's MCP server
+
+If you are connected to the site's MCP server (Craft 5.12+) instead of a
+shell, `info.get` says how the last run went, `component-check.results` lists
+its cases with the reasons, and `component-check.screenshot` shows a failed
+block before and after. These read what a run left behind; they do not run
+anything. When `results` says templates changed after the run, ask the human
+to run `component-check/test` again before you rely on it.
+
 ## Rules
 
 - Do not use `component-check/watch`: it is interactive and never exits. Use

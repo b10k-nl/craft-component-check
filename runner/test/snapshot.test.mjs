@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { environmentDiff, environmentOf, loadIndex, writeIndex } from '../lib/snapshot.mjs';
+import { editedSince, environmentDiff, environmentOf, loadIndex, writeIndex } from '../lib/snapshot.mjs';
 import { environmentNote } from '../lib/watch-lib.mjs';
 
 test('a snapshot records what rendered it', () => {
@@ -41,4 +41,12 @@ test('a browser that cannot say its version still gives the platform', () => {
   const env = environmentOf({ version: () => { throw new Error('closed'); } });
   assert.equal(env.browser, null);
   assert.ok(env.platform);
+});
+
+test('a changed site time zone is not an edit', () => {
+  // Velo: the same save, read before and after the time zone changed.
+  assert.equal(editedSince('2026-08-16T07:23:49-07:00', '2026-08-16T16:23:49+02:00'), false);
+  assert.equal(editedSince('2026-09-22T00:27:03-07:00', '2026-11-08T09:29:28+01:00'), true);
+  assert.equal(editedSince(null, '2026-11-08T09:29:28+01:00'), false);
+  assert.equal(editedSince('yesterday', 'today'), true, 'unparseable: compare as text');
 });
