@@ -438,6 +438,39 @@ jobs:
 On failure the artifact holds, for every changed block, the screenshot from
 the baseline next to the one from this run, and a Playwright trace.
 
+## Craft's MCP server (Craft 5.12+)
+
+Craft 5.12 has an MCP server built in. Component Check adds to it what an
+agent cannot work out from the content model or the files — what only a
+browser run knows. All of it read only: nothing starts a browser, writes a
+snapshot or changes content. Running the checks stays a shell command.
+
+- **In `info.get`'s instructions** (control-panel users): the mode, how the
+  last run went and when, whether templates changed since, which snapshot
+  `test` compares against (local or a committed baseline, and where it was
+  taken), and how to run a check.
+- **`component-check.results`**: the last run, case by case — block × page ×
+  viewport — failures first, with the reasons in words and the paths to the
+  screenshots. Filter by component, status or viewport.
+- **`component-check.usages`**: the live pages each block is on, its variants,
+  and which pages a run tests.
+- **`component-check.screenshot`**: a block as the run saw it and as the
+  snapshot has it, as images — for agents that cannot open files on the
+  server.
+- **`component-check-coverage` in `content-model.audit`** (admins): blocks the
+  snapshot no longer covers (edited or deleted since), and blocks the last run
+  could not locate because they have no markers.
+
+The tools need control-panel access and only appear where the mode is not
+`off`, so on production there is nothing. On Craft before 5.12 nothing
+changes. If a later Craft no longer accepts what the plugin hands its MCP
+server, the plugin leaves its part out and logs a warning (category
+`component-check`); the rest of the server keeps answering.
+
+To try it locally: `php craft mcp/serve --user=<id or username>` (stdio), or
+enable the server in Settings → MCP and connect your agent to
+`https://<site>/admin/mcp`.
+
 ## Coding agents
 
 The loop this plugin is built for: `snapshot <component>`, change it, run

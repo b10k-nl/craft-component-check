@@ -208,7 +208,7 @@ class TestRunner extends Component
             $path = trim(App::parseEnv(Plugin::getInstance()->getSettings()->snapshotPath) ?? '');
         }
         if ($path === '') {
-            return $this->basePath() . DIRECTORY_SEPARATOR . 'snapshot';
+            return $this->defaultSnapshotDir();
         }
         $path = (string)Craft::getAlias($path);
         if (!self::isAbsolute($path)) {
@@ -218,11 +218,19 @@ class TestRunner extends Component
     }
 
     /**
+     * The local snapshot folder, used when snapshotPath is not set.
+     */
+    public function defaultSnapshotDir(): string
+    {
+        return $this->basePath() . DIRECTORY_SEPARATOR . 'snapshot';
+    }
+
+    /**
      * When the snapshot was last written, or null if there is none.
      */
     public function snapshotTakenAt(?string $dir = null): ?string
     {
-        $index = self::snapshotIndex($dir ?? $this->snapshotDir());
+        $index = self::readSnapshotIndex($dir ?? $this->snapshotDir());
         return is_string($index['updatedAt'] ?? null) ? $index['updatedAt'] : null;
     }
 
@@ -234,7 +242,7 @@ class TestRunner extends Component
      */
     public function clearSnapshot(string $dir): int
     {
-        $index = self::snapshotIndex($dir);
+        $index = self::readSnapshotIndex($dir);
         if ($index === null) {
             return 0;
         }
@@ -257,9 +265,11 @@ class TestRunner extends Component
     }
 
     /**
+     * A snapshot's index.json, or null when there is none.
+     *
      * @return array<string, mixed>|null
      */
-    private static function snapshotIndex(string $dir): ?array
+    public static function readSnapshotIndex(string $dir): ?array
     {
         $file = $dir . DIRECTORY_SEPARATOR . 'index.json';
         if (!is_file($file)) {

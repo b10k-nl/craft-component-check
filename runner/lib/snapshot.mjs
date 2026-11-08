@@ -64,6 +64,19 @@ export function environmentDiff(snapshotEnv, currentEnv) {
   return { matches: differs.length === 0, snapshot: snapshotEnv, current: currentEnv, differs };
 }
 
+/**
+ * Whether a block was saved again after the snapshot. Compares instants, not
+ * strings: the same moment reads differently once the site's time zone changes
+ * (07:23:49-07:00 is 16:23:49+02:00), and that is not an edit.
+ */
+export function editedSince(then, now) {
+  if (!then || !now) return false;
+  const a = Date.parse(then);
+  const b = Date.parse(now);
+  if (Number.isNaN(a) || Number.isNaN(b)) return then !== now;
+  return a !== b;
+}
+
 export function componentOf(target, blockId) {
   for (const [component, ids] of Object.entries(target.components)) {
     if (ids.includes(blockId)) return component;
@@ -93,7 +106,7 @@ export function compareWithSnapshot({ layout, target, viewport, index, dir, tole
     }
 
     const updated = target.blocks?.[region.blockId]?.updated ?? null;
-    if (entry.updated && updated && entry.updated !== updated) {
+    if (editedSince(entry.updated, updated)) {
       checks.push(check(WARNING, `Content of block #${region.blockId} was edited after the snapshot — not compared`));
       continue;
     }

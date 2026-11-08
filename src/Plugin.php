@@ -2,6 +2,11 @@
 
 namespace b10k\componentcheck;
 
+use b10k\componentcheck\mcp\CoverageCheck;
+use b10k\componentcheck\mcp\LastRun;
+use b10k\componentcheck\mcp\McpBrief;
+use b10k\componentcheck\mcp\McpCompat;
+use b10k\componentcheck\mcp\Tools;
 use b10k\componentcheck\models\Settings;
 use b10k\componentcheck\services\ActivationPolicy;
 use b10k\componentcheck\services\ComponentMapBridge;
@@ -65,6 +70,84 @@ class Plugin extends BasePlugin
                 /** @var CraftVariable $variable */
                 $variable = $event->sender;
                 $variable->set('componentCheck', ComponentCheckVariable::class);
+            },
+        );
+
+        $this->registerMcp();
+    }
+
+    /**
+     * Craft's MCP server (Craft 5.12+): the tools `component-check.results`,
+     * `.usages` and `.screenshot`, the coverage check in
+     * `content-model.audit`, and a word in `info.get` on the last run. All read
+     * only. Nothing on an older Craft — the classes are only named, never
+     * loaded — nothing where the mode is `off`, and nothing on an ordinary
+     * request: the handlers run when an MCP server is built.
+     *
+     * Whatever goes wrong here is logged and left out: Component Check must
+     * not be the reason a site's MCP server stops answering.
+     */
+    private function registerMcp(): void
+    {
+        if (!class_exists(\craft\services\Mcp::class)) {
+            return;
+        }
+
+        // Checks have no event of their own; capability types are collected
+        // once per server, before any tool can run — the audit included.
+        Event::on(
+            \craft\services\Mcp::class,
+            \craft\services\Mcp::EVENT_REGISTER_CAPABILITY_TYPES,
+            function ($event): void {
+                // Untyped: a handler whose type no longer matches would throw
+                // inside Craft, not here.
+                if (!$event instanceof \craft\events\RegisterComponentTypesEvent) {
+                    return;
+                }
+                try {
+                    if ($this->getMode() === ActivationPolicy::OFF) {
+                        return;
+                    }
+                    if (McpCompat::toolsFit()) {
+                        $event->types[] = Tools::class;
+                    }
+                    if (!McpCompat::checkFits()) {
+                        return;
+                    }
+                    $checks = Craft::$app->get('mcp')->getCheckRegistry();
+                    if (!in_array(McpBrief::CHECK_ID, $checks->ids(), true)) {
+                        $checks->register(CoverageCheck::class);
+                    }
+                } catch (\Throwable $e) {
+                    Craft::warning('Component Check could not add itself to Craft’s MCP server: ' . $e->getMessage(), 'component-check');
+                }
+            },
+        );
+
+        // Full instructions in info.get go to control-panel users only; the
+        // instructions every client gets are left alone.
+        Event::on(
+            \craft\mcp\AdminInstructions::class,
+            \craft\mcp\AdminInstructions::EVENT_COLLECT_INSTRUCTIONS,
+            function ($event): void {
+                if (!$event instanceof \craft\mcp\events\CollectingAdminInstructions) {
+                    return;
+                }
+                try {
+                    $mode = $this->getMode();
+                    if ($mode === ActivationPolicy::OFF) {
+                        return;
+                    }
+                    $event->instructions[] = McpBrief::text(
+                        ['mode' => $mode, 'explain' => $this->explainMode()],
+                        LastRun::summary(),
+                        LastRun::snapshot(),
+                        McpCompat::toolsFit(),
+                        McpCompat::checkFits(),
+                    );
+                } catch (\Throwable $e) {
+                    Craft::warning('Component Check could not add its MCP instructions: ' . $e->getMessage(), 'component-check');
+                }
             },
         );
     }

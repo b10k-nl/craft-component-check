@@ -3,6 +3,32 @@
 All notable changes to Component Check are documented here. This project
 adheres to [Semantic Versioning](https://semver.org).
 
+## 1.2.0 - 2026-11-08
+
+### Added
+
+- **Craft's MCP server (Craft 5.12+).** Component Check adds what only a
+  browser run knows, all read only:
+  - instructions in `info.get`: the mode, the last run and whether templates
+    changed since, the snapshot `test` compares against, how to run a check;
+  - `component-check.results`: the last run, case by case, failures first,
+    with reasons and screenshot paths;
+  - `component-check.usages`: the live pages each block is on, and which a
+    run tests;
+  - `component-check.screenshot`: a block now and in the snapshot, as images;
+  - the check `component-check-coverage` in `content-model.audit`: blocks the
+    snapshot no longer covers, and blocks without markers.
+
+  Only for control-panel users, never where the mode is `off`. Nothing changes
+  on Craft before 5.12; if a later Craft no longer accepts these, they are
+  left out and a warning is logged, and the site's MCP server keeps working.
+
+### Fixed
+
+- After the site's time zone changed, `test` reported every block in the
+  snapshot as “edited after the snapshot” and stopped comparing it. Dates are
+  now compared as moments, not as text.
+
 ## 1.1.0 - 2026-10-05
 
 ### Added
