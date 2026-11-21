@@ -5,15 +5,14 @@ namespace b10k\componentcheck\services;
 use b10k\componentcheck\models\Usage;
 use Craft;
 use craft\base\Component;
-use craft\base\ElementInterface;
-use craft\base\FieldInterface;
-use craft\base\NestedElementInterface;
-use craft\elements\Entry;
-use craft\fields\BaseOptionsField;
-use craft\fields\data\SingleOptionFieldData;
-use craft\fields\Lightswitch;
-use craft\fields\Matrix;
-use craft\helpers\Db;
+use CraftCms\Cms\Element\Contracts\ElementInterface;
+use CraftCms\Cms\Field\Contracts\FieldInterface;
+use CraftCms\Cms\Element\Contracts\NestedElementInterface;
+use CraftCms\Cms\Entry\Elements\Entry;
+use CraftCms\Cms\Field\BaseOptionsField;
+use CraftCms\Cms\Field\Data\SingleOptionFieldData;
+use CraftCms\Cms\Field\Lightswitch;
+use CraftCms\Cms\Field\Matrix;
 
 /**
  * Finds every block of every Matrix field, and the page it appears on.
@@ -67,9 +66,9 @@ class UsageDiscovery extends Component
             $query = Entry::find()
                 ->fieldId($field->id)
                 ->site('*')
-                ->orderBy(['elements.id' => SORT_ASC]);
+                ->orderBy('elements.id');
 
-            foreach (Db::each($query) as $block) {
+            foreach ($query->cursor() as $block) {
                 /** @var Entry $block */
                 $result = $this->usageFor($block, $field);
 

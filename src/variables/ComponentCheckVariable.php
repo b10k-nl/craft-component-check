@@ -3,7 +3,7 @@
 namespace b10k\componentcheck\variables;
 
 use b10k\componentcheck\Plugin;
-use craft\base\ElementInterface;
+use CraftCms\Cms\Element\Contracts\ElementInterface;
 use Twig\Markup;
 
 /**

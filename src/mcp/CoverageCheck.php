@@ -4,7 +4,7 @@ namespace b10k\componentcheck\mcp;
 
 use b10k\componentcheck\Plugin;
 use b10k\componentcheck\services\TestRunner;
-use craft\elements\Entry;
+use CraftCms\Cms\Entry\Elements\Entry;
 use craft\mcp\contentmodel\Check;
 
 /**

@@ -5,8 +5,8 @@ namespace b10k\componentcheck\services;
 use b10k\componentcheck\Plugin;
 use Craft;
 use yii\base\Component;
-use craft\base\ElementInterface;
-use craft\elements\Entry;
+use CraftCms\Cms\Element\Contracts\ElementInterface;
+use CraftCms\Cms\Entry\Elements\Entry;
 
 /**
  * Decides, once per request, whether component markers render — and renders
