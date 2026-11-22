@@ -171,8 +171,8 @@ class McpTest extends TestCase
         $text = McpBrief::text(['mode' => 'readonly', 'explain' => 'Mode: readonly.'], null, null, false, false);
 
         $this->assertStringContainsString('No run yet on this environment.', $text);
-        $this->assertStringNotContainsString('component-check.results', $text);
-        $this->assertStringNotContainsString('content-model.audit', $text);
+        $this->assertStringNotContainsString('component_check_results', $text);
+        $this->assertStringNotContainsString('content_model_audit', $text);
     }
 
     public function testAgo(): void

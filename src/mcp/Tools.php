@@ -8,7 +8,7 @@ use b10k\componentcheck\Plugin;
 use b10k\componentcheck\services\ActivationPolicy;
 use b10k\componentcheck\services\TestRunner;
 use Craft;
-use craft\mcp\attributes\RequiresPermission;
+use CraftCms\Cms\Mcp\Attributes\RequiresPermission;
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
 use Mcp\Exception\ToolCallException;
@@ -38,7 +38,7 @@ class Tools
      * @return array<string, mixed>
      */
     #[McpTool(
-        name: 'component-check.results',
+        name: 'component_check_results',
         description: 'The last Component Check run on this environment: when it ran, what it covered, and every case (block × page × viewport) with its verdict — failed with the reasons in words (an error, a missing block, “h1 background #008000 → #0000ff” against the snapshot), warnings, and paths to the screenshots. Failures first. Says whether templates changed since, so the results may be stale. Does not run anything: a run is `php artisan craft:component-check:test --json` in a shell.',
         annotations: new ToolAnnotations(readOnlyHint: true),
     )]
@@ -85,7 +85,7 @@ class Tools
      * @return array<string, mixed>
      */
     #[McpTool(
-        name: 'component-check.usages',
+        name: 'component_check_usages',
         description: 'Where each Matrix block (entry type) is used on the live site — usages, pages, variants (which fields are filled in) — and the few pages a Component Check run tests so every variant is covered. Use it to know which pages to look at after changing a block. Reads the database; renders nothing.',
         annotations: new ToolAnnotations(readOnlyHint: true),
     )]
@@ -163,13 +163,13 @@ class Tools
      * @return list<TextContent|ImageContent>
      */
     #[McpTool(
-        name: 'component-check.screenshot',
+        name: 'component_check_screenshot',
         description: 'A block as Component Check saw it, as images: “now” from the last run (kept only when the block failed) and “before” from the snapshot. For a failed case, the two side by side show what a change did. Pick the page and viewport, or leave them out for the block\'s first failing case (or its first page).',
         annotations: new ToolAnnotations(readOnlyHint: true),
     )]
     #[RequiresPermission('accessCp')]
     public function screenshot(
-        #[Schema(description: 'An entry type handle, as component-check.results lists them.')]
+        #[Schema(description: 'An entry type handle, as component_check_results lists them.')]
         string $component,
         #[Schema(description: 'The page: its URL or path, e.g. /about. Omit for the first failing case.')]
         string $page = '',

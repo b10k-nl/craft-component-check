@@ -5,11 +5,11 @@ namespace b10k\componentcheck\mcp;
 use b10k\componentcheck\Plugin;
 use b10k\componentcheck\services\TestRunner;
 use CraftCms\Cms\Entry\Elements\Entry;
-use craft\mcp\contentmodel\Check;
+use CraftCms\Cms\Mcp\ContentModel\Check;
 
 /**
  * Blocks the snapshot no longer covers and blocks without markers, as a check
- * of Craft's `content-model.audit` (Craft 5.12+), next to unused fields and
+ * of Craft's `content_model_audit` (Craft 6), next to unused fields and
  * empty sections. See CoverageFindings.
  *
  * Reads the snapshot index, the last run and the blocks' dates — no browser.

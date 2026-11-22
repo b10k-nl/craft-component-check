@@ -6,7 +6,7 @@ use b10k\componentcheck\helpers\Cli;
 
 /**
  * What Component Check tells an agent connected to Craft's MCP server, in the
- * instructions `info.get` returns: what the plugin is for, the mode, how the
+ * instructions `info_get` returns: what the plugin is for, the mode, how the
  * last run went, which snapshot it compares against, and how to run it.
  *
  * Only what the agent cannot work out from the content model or the files.
@@ -14,17 +14,17 @@ use b10k\componentcheck\helpers\Cli;
  */
 final class McpBrief
 {
-    /** The id of the coverage check in `content-model.audit` (see CoverageCheck). */
+    /** The id of the coverage check in `content_model_audit` (see CoverageCheck). */
     public const CHECK_ID = 'component-check-coverage';
 
-    public const TOOLS = ['component-check.results', 'component-check.usages', 'component-check.screenshot'];
+    public const TOOLS = ['component_check_results', 'component_check_usages', 'component_check_screenshot'];
 
     /**
      * @param array{mode: string, explain: string} $mode
      * @param array<string, mixed>|null $run RunView::summary() plus `stale` (bool) and `ago` (string|null).
      * @param array{dir: string, local: bool, takenAt: string|null, environment: array<string, mixed>|null}|null $snapshot
      * @param bool $tools Our tools are on the server (see McpCompat).
-     * @param bool $check The coverage check is in content-model.audit.
+     * @param bool $check The coverage check is in content_model_audit.
      */
     public static function text(array $mode, ?array $run, ?array $snapshot, bool $tools = true, bool $check = true): string
     {
@@ -83,11 +83,11 @@ final class McpBrief
 
         if ($tools) {
             $lines[] = '';
-            $lines[] = 'Tools: `component-check.results` (the last run: what failed, where and why), `component-check.usages` (the live pages each block is on, and which of them a run tests), `component-check.screenshot` (a block before and after, as images).';
+            $lines[] = 'Tools: `component_check_results` (the last run: what failed, where and why), `component_check_usages` (the live pages each block is on, and which of them a run tests), `component_check_screenshot` (a block before and after, as images).';
         }
         if ($check) {
             $lines[] = sprintf(
-                'content-model.audit (admins) runs the check `%s`: blocks the snapshot no longer covers, and blocks without markers.',
+                'content_model_audit (admins) runs the check `%s`: blocks the snapshot no longer covers, and blocks without markers.',
                 self::CHECK_ID,
             );
         }

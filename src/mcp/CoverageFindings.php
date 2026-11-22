@@ -6,7 +6,7 @@ use b10k\componentcheck\helpers\Cli;
 
 /**
  * Findings of the `component-check-coverage` check in Craft's
- * `content-model.audit`: where the content and Component Check no longer
+ * `content_model_audit`: where the content and Component Check no longer
  * line up, so checks are silently weaker than they look.
  *
  * - `stale-baseline`: a block in the snapshot whose content was edited after

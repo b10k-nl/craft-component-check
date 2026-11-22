@@ -30,7 +30,11 @@ final class McpCompat
         }
 
         try {
-            $names = array_keys((new \craft\mcp\CapabilityRegistry([Tools::class]))->definitions()->getTools());
+            // A throwaway registry, not Craft's: a class that no longer fits
+            // must fail here, not inside the site's MCP server.
+            $registry = new \CraftCms\Cms\Mcp\CapabilityRegistry();
+            $registry->register(Tools::class);
+            $names = array_keys($registry->definitions()->getTools());
             $missing = array_diff(McpBrief::TOOLS, $names);
             if ($missing !== []) {
                 throw new \LogicException('not found: ' . implode(', ', $missing));
@@ -50,7 +54,7 @@ final class McpCompat
         }
 
         try {
-            $interface = new \ReflectionClass(\craft\mcp\contentmodel\Check::class);
+            $interface = new \ReflectionClass(\CraftCms\Cms\Mcp\ContentModel\Check::class);
             $methods = array_map(static fn(\ReflectionMethod $m): string => $m->getName(), $interface->getMethods());
             sort($methods);
             $id = $interface->getMethod('id');
@@ -66,7 +70,7 @@ final class McpCompat
                 && $limit !== null && (string)$limit->getType() === 'int'
                 && ($runType === null || (string)$runType === 'array');
             if (!$fits) {
-                throw new \LogicException('craft\mcp\contentmodel\Check has changed.');
+                throw new \LogicException('CraftCms\Cms\Mcp\ContentModel\Check has changed.');
             }
             return self::$check = true;
         } catch (\Throwable $e) {

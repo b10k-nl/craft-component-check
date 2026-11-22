@@ -77,9 +77,9 @@ class Plugin extends BasePlugin
     }
 
     /**
-     * Craft's MCP server (Craft 5.12+): the tools `component-check.results`,
+     * Craft's MCP server (Craft 6): the tools `component_check_results`,
      * `.usages` and `.screenshot`, the coverage check in
-     * `content-model.audit`, and a word in `info.get` on the last run. All read
+     * `content_model_audit`, and a word in `info_get` on the last run. All read
      * only. Nothing on an older Craft — the classes are only named, never
      * loaded — nothing where the mode is `off`, and nothing on an ordinary
      * request: the handlers run when an MCP server is built.
@@ -89,50 +89,43 @@ class Plugin extends BasePlugin
      */
     private function registerMcp(): void
     {
-        if (!class_exists(\craft\services\Mcp::class)) {
+        // Craft 6: CraftCms\Cms\Mcp. Registration is deferred to the moment
+        // Craft first reads its registries — the mode depends on request state
+        // (allowAdminChanges), and a failure here must never take the site's
+        // MCP server down with it.
+        if (!class_exists(\CraftCms\Cms\Mcp\CapabilityRegistry::class)) {
             return;
         }
 
-        // Checks have no event of their own; capability types are collected
-        // once per server, before any tool can run — the audit included.
-        Event::on(
-            \craft\services\Mcp::class,
-            \craft\services\Mcp::EVENT_REGISTER_CAPABILITY_TYPES,
-            function ($event): void {
-                // Untyped: a handler whose type no longer matches would throw
-                // inside Craft, not here.
-                if (!$event instanceof \craft\events\RegisterComponentTypesEvent) {
-                    return;
+        app(\CraftCms\Cms\Mcp\CapabilityRegistry::class)->defer(function ($registry): void {
+            try {
+                if ($this->getMode() !== ActivationPolicy::OFF && McpCompat::toolsFit()) {
+                    $registry->register(Tools::class);
                 }
+            } catch (\Throwable $e) {
+                Craft::warning('Component Check could not add its MCP tools: ' . $e->getMessage(), 'component-check');
+            }
+        });
+
+        if (class_exists(\CraftCms\Cms\Mcp\ContentModel\CheckRegistry::class)) {
+            app(\CraftCms\Cms\Mcp\ContentModel\CheckRegistry::class)->defer(function ($checks): void {
                 try {
-                    if ($this->getMode() === ActivationPolicy::OFF) {
-                        return;
-                    }
-                    if (McpCompat::toolsFit()) {
-                        $event->types[] = Tools::class;
-                    }
-                    if (!McpCompat::checkFits()) {
-                        return;
-                    }
-                    $checks = Craft::$app->get('mcp')->getCheckRegistry();
-                    if (!in_array(McpBrief::CHECK_ID, $checks->ids(), true)) {
+                    if ($this->getMode() !== ActivationPolicy::OFF
+                        && McpCompat::checkFits()
+                        && !in_array(McpBrief::CHECK_ID, $checks->ids(), true)) {
                         $checks->register(CoverageCheck::class);
                     }
                 } catch (\Throwable $e) {
-                    Craft::warning('Component Check could not add itself to Craft’s MCP server: ' . $e->getMessage(), 'component-check');
+                    Craft::warning('Component Check could not add its audit check: ' . $e->getMessage(), 'component-check');
                 }
-            },
-        );
+            });
+        }
 
-        // Full instructions in info.get go to control-panel users only; the
+        // Full instructions in info_get go to control-panel users only; the
         // instructions every client gets are left alone.
-        Event::on(
-            \craft\mcp\AdminInstructions::class,
-            \craft\mcp\AdminInstructions::EVENT_COLLECT_INSTRUCTIONS,
-            function ($event): void {
-                if (!$event instanceof \craft\mcp\events\CollectingAdminInstructions) {
-                    return;
-                }
+        \Illuminate\Support\Facades\Event::listen(
+            \CraftCms\Cms\Mcp\Events\CollectingAdminInstructions::class,
+            function (\CraftCms\Cms\Mcp\Events\CollectingAdminInstructions $event): void {
                 try {
                     $mode = $this->getMode();
                     if ($mode === ActivationPolicy::OFF) {
