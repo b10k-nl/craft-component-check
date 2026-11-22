@@ -2,6 +2,7 @@
 
 namespace b10k\componentcheck\services;
 
+use b10k\componentcheck\helpers\SigningKey;
 use b10k\componentcheck\Plugin;
 use Craft;
 use yii\base\Component;
@@ -52,7 +53,7 @@ class Markers extends Component
         }
 
         $token = $request->getHeaders()->get(MarkerToken::HEADER);
-        $key = Craft::$app->getConfig()->getGeneral()->securityKey;
+        $key = SigningKey::get();
 
         if (!MarkerToken::verify(is_string($token) ? $token : null, $key, time())) {
             return false;

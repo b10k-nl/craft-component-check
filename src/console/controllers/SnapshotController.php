@@ -2,15 +2,16 @@
 
 namespace b10k\componentcheck\console\controllers;
 
+use b10k\componentcheck\helpers\Cli;
 use b10k\componentcheck\services\ActivationPolicy;
 use craft\helpers\Console;
 
 /**
  * Records how blocks look *now*, so the next `test` can say what changed.
  *
- *     php craft component-check/snapshot hero      ← before you change the Hero
+ *     php artisan craft:component-check:snapshot hero      ← before you change the Hero
  *     …edit templates / CSS…
- *     php craft component-check/test hero          ← what changed since
+ *     php artisan craft:component-check:test hero          ← what changed since
  *
  * Kept locally in storage/component-check/snapshot by default — per machine,
  * per database. With the snapshotPath setting or `--snapshot-path` it can be a
@@ -32,6 +33,8 @@ class SnapshotController extends BrowserRunController
     }
 
     /**
+     * Records how blocks look now, so the next test can say what changed.
+     *
      * @param string $components Comma-separated component (entry type) handles. Empty = all.
      */
     public function actionIndex(string $components = ''): int
@@ -45,7 +48,7 @@ class SnapshotController extends BrowserRunController
             return $manifest;
         }
         if ($manifest['markers'] === null) {
-            return $this->error('Snapshots need component markers, but no signing key is configured (securityKey).');
+            return $this->error('Snapshots need component markers, but no signing key is configured (APP_KEY in .env).');
         }
 
         $runner = $this->plugin()->getTestRunner();
@@ -91,10 +94,10 @@ class SnapshotController extends BrowserRunController
         } else {
             $this->stdout("\n");
             if ($recorded === 0) {
-                $this->stderr("No block could be located — are the markers in the block loop? Run component-check/doctor.\n", Console::FG_RED);
+                $this->stderr("No block could be located — are the markers in the block loop? Run " . Cli::craft('component-check:doctor') . ".\n", Console::FG_RED);
             } else {
                 $this->stdout("Saved {$recorded} block snapshot(s) to {$dir}\n", Console::FG_GREEN);
-                $this->stdout("Now make your change and run: php craft component-check/test" . ($components !== '' ? " {$components}" : '') . "\n");
+                $this->stdout("Now make your change and run: " . Cli::craft('component-check:test' . ($components !== '' ? " {$components}" : '')) . "\n");
             }
             if ($failures > 0) {
                 $this->stdout(

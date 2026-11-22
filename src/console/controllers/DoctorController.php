@@ -12,8 +12,8 @@ use craft\helpers\Json;
 /**
  * Checks everything a test run needs, and says how to fix what is missing.
  *
- *     php craft component-check/doctor
- *     php craft component-check/doctor --json
+ *     php artisan craft:component-check:doctor
+ *     php artisan craft:component-check:doctor --json
  *
  * Works in every mode, including `off`, so it can explain why nothing runs.
  */
@@ -23,6 +23,9 @@ class DoctorController extends BaseController
     private const WARN = 'warn';
     private const FAIL = 'fail';
 
+    /**
+     * Checks everything a test run needs and says how to fix what is missing.
+     */
     public function actionIndex(): int
     {
         $checks = [];
@@ -50,7 +53,7 @@ class DoctorController extends BaseController
                 'node',
                 self::FAIL,
                 $node['exitCode'] === 0 ? "Node {$version} is too old (18+ needed)" : "Node not found (“{$settings->nodeBinary}”)",
-                'Install Node 18+ where `php craft` runs (DDEV: set nodejs_version in .ddev/config.yaml), or set nodeBinary.',
+                'Install Node 18+ where Craft runs (DDEV: set nodejs_version in .ddev/config.yaml), or set nodeBinary.',
             );
 
         // 3. Playwright + Chromium (asked of the runner itself, so resolution matches a real run)

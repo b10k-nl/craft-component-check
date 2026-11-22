@@ -2,6 +2,7 @@
 
 namespace b10k\componentcheck\services;
 
+use b10k\componentcheck\helpers\Cli;
 use b10k\componentcheck\Plugin;
 use Craft;
 use craft\base\Component;
@@ -29,6 +30,10 @@ class ComponentMapBridge extends Component
      * The command Component Map's impact runs as. Files (or --git / --since)
      * are appended by the caller.
      *
+     * Craft 6: through Artisan (`artisan craft:component-map:impact`), the
+     * form the Yii2 adapter registers; `craft component-map/impact` still
+     * works but is logged as deprecated in Yii2 Loose Ends.
+     *
      * `--json=1`, not `--json`: Yii reads `--json /path/to/file.twig` as the
      * option's value, and impact then sees no files at all.
      *
@@ -36,7 +41,7 @@ class ComponentMapBridge extends Component
      */
     public function impactCommand(): array
     {
-        return [PHP_BINARY, (string)Craft::getAlias('@root') . DIRECTORY_SEPARATOR . 'craft', self::HANDLE . '/impact', '--json=1'];
+        return [PHP_BINARY, base_path('artisan'), 'craft:' . self::HANDLE . ':impact', '--json=1'];
     }
 
     /**
@@ -49,14 +54,14 @@ class ComponentMapBridge extends Component
     public function impact(array $args): array
     {
         if (!$this->isAvailable()) {
-            throw new \RuntimeException('This needs Component Map: composer require b10k/craft-component-map && php craft plugin/install component-map');
+            throw new \RuntimeException('This needs Component Map: ' . Cli::composer('require b10k/craft-component-map') . ' && ' . Cli::craft('plugin:install component-map'));
         }
 
         $result = Plugin::getInstance()->getTestRunner()->capture([...$this->impactCommand(), ...$args], (string)Craft::getAlias('@root'));
         $data = Json::decodeIfJson(trim($result['stdout']));
 
         if (!is_array($data) || ($data['status'] ?? null) !== 'ok') {
-            $message = is_array($data) && isset($data['error']) ? (string)$data['error'] : 'component-map/impact failed (exit ' . $result['exitCode'] . ')';
+            $message = is_array($data) && isset($data['error']) ? (string)$data['error'] : 'craft:component-map:impact failed (exit ' . $result['exitCode'] . ')';
             throw new \RuntimeException($message);
         }
 

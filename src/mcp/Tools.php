@@ -2,6 +2,7 @@
 
 namespace b10k\componentcheck\mcp;
 
+use b10k\componentcheck\helpers\Cli;
 use b10k\componentcheck\models\ComponentSample;
 use b10k\componentcheck\Plugin;
 use b10k\componentcheck\services\ActivationPolicy;
@@ -21,7 +22,7 @@ use Mcp\Schema\ToolAnnotations;
  * on, and a block's picture before and after a change.
  *
  * All three read only: they never start a browser, write a snapshot or change
- * content. Running the checks stays a shell command (`component-check/test`).
+ * content. Running the checks stays a shell command (`craft:component-check:test`).
  * Hidden where the mode is `off` (Plugin) and from users without control-panel
  * access; each call checks again.
  */
@@ -38,7 +39,7 @@ class Tools
      */
     #[McpTool(
         name: 'component-check.results',
-        description: 'The last Component Check run on this environment: when it ran, what it covered, and every case (block × page × viewport) with its verdict — failed with the reasons in words (an error, a missing block, “h1 background #008000 → #0000ff” against the snapshot), warnings, and paths to the screenshots. Failures first. Says whether templates changed since, so the results may be stale. Does not run anything: a run is `php craft component-check/test --json` in a shell.',
+        description: 'The last Component Check run on this environment: when it ran, what it covered, and every case (block × page × viewport) with its verdict — failed with the reasons in words (an error, a missing block, “h1 background #008000 → #0000ff” against the snapshot), warnings, and paths to the screenshots. Failures first. Says whether templates changed since, so the results may be stale. Does not run anything: a run is `php artisan craft:component-check:test --json` in a shell.',
         annotations: new ToolAnnotations(readOnlyHint: true),
     )]
     #[RequiresPermission('accessCp')]
@@ -57,14 +58,14 @@ class Tools
         if ($view === null) {
             return [
                 'run' => null,
-                'message' => 'No run yet on this environment. Run `php craft component-check/test --json` in a shell (take `component-check/snapshot` first to compare before and after a change).',
+                'message' => 'No run yet on this environment. Run `' . Cli::craft('component-check:test --json') . '` in a shell (take `' . Cli::craft('component-check:snapshot') . '` first to compare before and after a change).',
             ];
         }
 
         $cases = $view->cases($component, $status === 'all' ? '' : $status, $viewport, $limit);
         if ($component !== '' && $cases['total'] === 0 && !in_array(strtolower($component), array_map('strtolower', $view->summary()['components']), true)) {
             throw new ToolCallException(sprintf(
-                'The last run did not cover “%s”. It covered: %s. Run `php craft component-check/test %s --json` to test it.',
+                'The last run did not cover “%s”. It covered: %s. Run `' . Cli::craft('component-check:test %s --json') . '` to test it.',
                 $component,
                 implode(', ', $view->summary()['components']) ?: 'nothing',
                 $component,
@@ -203,7 +204,7 @@ class Tools
         }
         if ($targets === []) {
             throw new ToolCallException(sprintf(
-                'Nothing recorded for “%s”%s: not in the last run, not in the snapshot. Run `php craft component-check/snapshot %s` or `component-check/test %s` in a shell first.',
+                'Nothing recorded for “%s”%s: not in the last run, not in the snapshot. Run `' . Cli::craft('component-check:snapshot %s') . '` or `' . Cli::craft('component-check:test %s') . '` in a shell first.',
                 $component,
                 $viewport !== '' ? " on {$viewport}" : '',
                 $component,

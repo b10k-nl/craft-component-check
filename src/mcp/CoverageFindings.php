@@ -2,6 +2,8 @@
 
 namespace b10k\componentcheck\mcp;
 
+use b10k\componentcheck\helpers\Cli;
+
 /**
  * Findings of the `component-check-coverage` check in Craft's
  * `content-model.audit`: where the content and Component Check no longer
@@ -77,7 +79,7 @@ final class CoverageFindings
             'type' => 'stale-baseline',
             'component' => $component,
             'blockId' => $blockId,
-            'message' => $why . ' Re-record it: php craft component-check/snapshot ' . ($component !== '' ? $component : '<component>') . '.',
+            'message' => $why . ' Re-record it: ' . Cli::craft('component-check:snapshot ' . ($component !== '' ? $component : '<component>')) . '.',
             'snapshot' => $snapshotDir,
         ];
     }

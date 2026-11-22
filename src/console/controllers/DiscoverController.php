@@ -8,9 +8,9 @@ use craft\helpers\Console;
 /**
  * Where is every component used, and which pages would be tested?
  *
- *     php craft component-check/discover
- *     php craft component-check/discover hero
- *     php craft component-check/discover --json
+ *     php artisan craft:component-check:discover
+ *     php artisan craft:component-check:discover hero
+ *     php artisan craft:component-check:discover --json
  *
  * Read-only: runs database queries, renders nothing, changes nothing. Allowed
  * in `readonly` and `full` mode.
@@ -28,6 +28,8 @@ class DiscoverController extends BaseController
     }
 
     /**
+     * Shows where every component is used and which pages would be tested.
+     *
      * @param string $components Comma-separated component (entry type) handles. Empty = all.
      */
     public function actionIndex(string $components = ''): int

@@ -2,6 +2,8 @@
 
 namespace b10k\componentcheck\services;
 
+use b10k\componentcheck\helpers\SigningKey;
+use b10k\componentcheck\helpers\Cli;
 use b10k\componentcheck\Plugin;
 use Craft;
 use craft\base\Component;
@@ -59,7 +61,7 @@ class TestRunner extends Component
 
         $token = null;
         if ($withToken && $mode === ActivationPolicy::FULL) {
-            $key = Craft::$app->getConfig()->getGeneral()->securityKey;
+            $key = SigningKey::get();
             $token = $key !== '' ? MarkerToken::create($key, time(), $tokenTtl) : null;
         }
 
@@ -120,8 +122,8 @@ class TestRunner extends Component
             $results = [
                 'runs' => [],
                 'error' => $exitCode === 127
-                    ? "Could not start Node (“{$command[0]}”). Run `php craft component-check/doctor`."
-                    : "The runner exited with code {$exitCode} without writing results. Run `php craft component-check/doctor`.",
+                    ? "Could not start Node (“{$command[0]}”). Run `" . Cli::craft('component-check:doctor') . "`."
+                    : "The runner exited with code {$exitCode} without writing results. Run `" . Cli::craft('component-check:doctor') . "`.",
             ];
         }
 

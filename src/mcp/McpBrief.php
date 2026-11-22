@@ -2,6 +2,8 @@
 
 namespace b10k\componentcheck\mcp;
 
+use b10k\componentcheck\helpers\Cli;
+
 /**
  * What Component Check tells an agent connected to Craft's MCP server, in the
  * instructions `info.get` returns: what the plugin is for, the mode, how the
@@ -76,7 +78,7 @@ final class McpBrief
         }
 
         $lines[] = '';
-        $lines[] = 'To check a change, from a shell in the project: `php craft component-check/snapshot <handle>` before you change a block, then `php craft component-check/test <handle> --json` after (`test --changed --json` tests only what uncommitted changes affect, with Component Map installed). Exit code 0 passed, 1 failed, 2 could not run.';
+        $lines[] = 'To check a change, from a shell in the project: `' . Cli::craft('component-check:snapshot <handle>') . '` before you change a block, then `' . Cli::craft('component-check:test <handle> --json') . '` after (`test --changed --json` tests only what uncommitted changes affect, with Component Map installed). Exit code 0 passed, 1 failed, 2 could not run.';
         $lines[] = 'Do not re-take a snapshot to make a failure go away. A committed baseline is the team\'s reference: re-record it only for an intended change, and only when the human agrees.';
 
         if ($tools) {

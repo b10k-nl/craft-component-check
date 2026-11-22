@@ -2,6 +2,8 @@
 
 namespace b10k\componentcheck\console\controllers;
 
+use b10k\componentcheck\helpers\Cli;
+
 /**
  * Shared by the commands that open a browser (`test`, `snapshot`): parses the
  * component and viewport arguments and builds the manifest.
@@ -69,7 +71,7 @@ abstract class BrowserRunController extends BaseController
         $manifest = $runner->manifest($samples, $only, $viewports, true, $tokenTtl);
 
         if ($manifest['pages'] === []) {
-            return $this->error('Nothing to test: no component is used on a live page. Run `php craft component-check/discover`.');
+            return $this->error('Nothing to test: no component is used on a live page. Run `' . Cli::craft('component-check:discover') . '`.');
         }
 
         return $manifest;

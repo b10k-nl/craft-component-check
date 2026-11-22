@@ -2,6 +2,7 @@
 
 namespace b10k\componentcheck\console\controllers;
 
+use b10k\componentcheck\helpers\Cli;
 use b10k\componentcheck\services\ActivationPolicy;
 use Craft;
 use craft\helpers\Console;
@@ -9,9 +10,9 @@ use craft\helpers\Console;
 /**
  * Snapshots the components once, then re-checks them on every save.
  *
- *     php craft component-check/watch hero
- *     php craft component-check/watch hero,cards --viewport=mobile
- *     php craft component-check/watch --keep-snapshot
+ *     php artisan craft:component-check:watch hero
+ *     php artisan craft:component-check:watch hero,cards --viewport=mobile
+ *     php artisan craft:component-check:watch --keep-snapshot
  *
  * Run it in its own terminal while you edit. The snapshot taken at start is
  * "how it was before I started"; every save is compared with it. Keys:
@@ -45,6 +46,8 @@ class WatchController extends BrowserRunController
     }
 
     /**
+     * Snapshots the components once, then re-checks them on every save.
+     *
      * @param string $components Comma-separated component (entry type) handles. Empty = all.
      */
     public function actionIndex(string $components = ''): int
@@ -63,12 +66,12 @@ class WatchController extends BrowserRunController
             return $manifest;
         }
         if ($manifest['markers'] === null) {
-            return $this->error('Watch mode needs component markers, but no signing key is configured (securityKey).');
+            return $this->error('Watch mode needs component markers, but no signing key is configured (APP_KEY in .env).');
         }
 
         $snapshotDir = $this->snapshotDir();
         if ($this->keepSnapshot && $runner->snapshotTakenAt($snapshotDir) === null) {
-            return $this->error('There is no snapshot to keep yet. Run without --keep-snapshot, or run component-check/snapshot first.');
+            return $this->error('There is no snapshot to keep yet. Run without --keep-snapshot, or run ' . Cli::craft('component-check:snapshot') . ' first.');
         }
 
         $paths = [];
@@ -96,7 +99,7 @@ class WatchController extends BrowserRunController
         $exit = $runner->watch($manifest, array_values(array_unique($paths)), $settings->watchIgnore, $this->keepSnapshot, $this->headed, $impact, $snapshotDir);
 
         if ($exit === 127) {
-            return $this->error('Could not start Node. Run `php craft component-check/doctor`.');
+            return $this->error('Could not start Node. Run `' . Cli::craft('component-check:doctor') . '`.');
         }
 
         return $exit === 0 ? self::EXIT_PASSED : self::EXIT_ERROR;

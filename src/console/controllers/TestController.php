@@ -2,6 +2,7 @@
 
 namespace b10k\componentcheck\console\controllers;
 
+use b10k\componentcheck\helpers\Cli;
 use b10k\componentcheck\services\ActivationPolicy;
 use b10k\componentcheck\services\ChangeSelection;
 use b10k\componentcheck\services\ResultsReport;
@@ -10,12 +11,12 @@ use craft\helpers\Console;
 /**
  * Runs browser checks on the pages where components are actually used.
  *
- *     php craft component-check/test
- *     php craft component-check/test hero
- *     php craft component-check/test hero,cards --viewport=mobile
- *     php craft component-check/test --json
- *     php craft component-check/test --changed        # what your uncommitted changes affect
- *     php craft component-check/test --since=main     # what your branch affects
+ *     php artisan craft:component-check:test
+ *     php artisan craft:component-check:test hero
+ *     php artisan craft:component-check:test hero,cards --viewport=mobile
+ *     php artisan craft:component-check:test --json
+ *     php artisan craft:component-check:test --changed        # what your uncommitted changes affect
+ *     php artisan craft:component-check:test --since=main     # what your branch affects
  *
  * --changed and --since ask Component Map (if installed) which blocks the
  * changed files are rendered through.
@@ -55,6 +56,8 @@ class TestController extends BrowserRunController
     }
 
     /**
+     * Runs browser checks on the pages where components are actually used.
+     *
      * @param string $components Comma-separated component (entry type) handles. Empty = all.
      */
     public function actionIndex(string $components = ''): int
@@ -111,12 +114,12 @@ class TestController extends BrowserRunController
                 count($manifest['components']),
                 count($manifest['pages']),
                 count($manifest['viewports']),
-                $manifest['markers'] === null ? ' — page-level checks only (markers need mode “full”)' : '',
+                $manifest['markers'] === null ? ' — page-level checks only (markers need mode “full” and APP_KEY)' : '',
             ), Console::FG_GREY);
             $this->stdout(
                 $snapshotAt !== null
                     ? "Comparing with the snapshot from {$snapshotAt}\n\n"
-                    : "No snapshot: checking for errors only. Run component-check/snapshot before a change to compare before/after.\n\n",
+                    : "No snapshot: checking for errors only. Run " . Cli::craft('component-check:snapshot') . " before a change to compare before/after.\n\n",
                 Console::FG_GREY,
             );
         }
