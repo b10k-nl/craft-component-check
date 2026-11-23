@@ -3,6 +3,28 @@
 All notable changes to Component Check are documented here. This project
 adheres to [Semantic Versioning](https://semver.org).
 
+## 6.0.0-beta.1 - Unreleased
+
+Version numbers now follow Craft: **6.x is for Craft 6**, the 1.x line stays
+on Craft 5 and keeps getting fixes.
+
+### Changed
+
+- **Craft 6 (beta).** Requires Craft 6 with the Yii2 adapter and PHP 8.5.
+- Commands are Artisan commands: `php artisan craft:component-check:test`
+  (`ddev artisan …` on DDEV). Every command the plugin prints — hints, errors,
+  MCP messages — comes in that form, as Craft's own `TerminalCommands` words it.
+  The overview is `craft:component-check:default`.
+- Block markers are signed with `APP_KEY`. Craft 6 has no `securityKey`; without
+  this every run quietly fell back to page-level checks.
+- Craft's MCP server is Craft 6's: tools, the audit check and the instructions
+  register through `CapabilityRegistry`, `CheckRegistry` and
+  `CollectingAdminInstructions`. Tool names follow Craft 6:
+  `component_check_results`, `component_check_usages`,
+  `component_check_screenshot`; the check is in `content_model_audit`.
+- With Component Map, `--changed` / `--since` call
+  `artisan craft:component-map:impact`.
+
 ## 1.2.0 - 2026-11-08
 
 ### Added

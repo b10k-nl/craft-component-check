@@ -6,9 +6,9 @@ testing, and runs desktop and mobile browser checks on them with Playwright —
 without a single test file.
 
 ```
-$ php craft component-check/snapshot hero       # before the change
+$ php artisan craft:component-check:snapshot hero       # before the change
 $ # …edit _blocks/hero.twig…
-$ php craft component-check/test hero
+$ php artisan craft:component-check:test hero
 
 Hero (hero)
   Home                             desktop ✓   mobile ✕
@@ -77,9 +77,9 @@ The question a regression test really asks is not *“is this bad?”* but *“d
 my change change this?”* — and that one needs no guessing:
 
 ```bash
-php craft component-check/snapshot hero     # how the Hero blocks look now
+php artisan craft:component-check:snapshot hero     # how the Hero blocks look now
 # …change the template or CSS…
-php craft component-check/test hero         # what changed since
+php artisan craft:component-check:test hero         # what changed since
 ```
 
 Nothing changed:
@@ -113,7 +113,7 @@ container that moves does not report every child as moved.
 For the edit–save–look loop, run this in its own terminal:
 
 ```
-$ ddev craft component-check/watch hero
+$ ddev artisan craft:component-check:watch hero
 
 Component Check — watching hero on 1 page(s) × 2 viewport(s)
 [10:42:05] Snapshot taken: 2 block snapshot(s) in storage/component-check/snapshot
@@ -155,8 +155,8 @@ With [Component Map](#with-component-map-test-only-what-you-changed) installed, 
 blocks each template is rendered through. With it installed:
 
 ```bash
-php craft component-check/test --changed        # your uncommitted changes
-php craft component-check/test --since=main     # everything on your branch
+php artisan craft:component-check:test --changed        # your uncommitted changes
+php artisan craft:component-check:test --since=main     # everything on your branch
 ```
 
 ```
@@ -179,31 +179,32 @@ Testing 1 component(s) on 1 page(s) × 2 viewport(s)
 rendered through the file you saved.
 
 The two plugins talk through Component Map's documented JSON
-(`component-map/impact --json`), so each can be updated on its own.
+(`craft:component-map:impact --json`), so each can be updated on its own.
 
 ## Requirements
 
-- Craft CMS 5, PHP 8.2+
-- Node 18+ **where `php craft` runs**, with `playwright` installed in the
+- Craft CMS 6 (beta) with the Yii2 adapter, PHP 8.5+. For Craft 5, use the 1.x line of this plugin.
+- `APP_KEY` set in `.env` — block markers are signed with it.
+- Node 18+ **where Craft runs**, with `playwright` installed in the
   project (see Setup). Only needed to run tests — not on production.
 
 ## Setup
 
 ```bash
 composer require b10k/craft-component-check
-php craft plugin/install component-check
+php artisan craft:plugin:install component-check
 
 npm install --save-dev playwright
 npx playwright install --with-deps chromium
 
-php craft component-check/doctor
+php artisan craft:component-check:doctor
 ```
 
 `doctor` checks the mode, Node, Playwright, Chromium, the output directory,
 whether the site answers at the discovered URLs, and whether your templates
 have markers — and says how to fix whatever is missing.
 
-**DDEV:** run everything with `ddev exec` / `ddev craft …`; Node is already in
+**DDEV:** run everything with `ddev exec` / `ddev artisan …`; Node is already in
 the web container (`nodejs_version` in `.ddev/config.yaml`). Chromium needs its
 system libraries, which `--with-deps` installs; add
 `webimage_extra_packages` or a post-start hook if you want that to survive
@@ -242,11 +243,11 @@ Markers nest (a card inside a cards grid); `end()` closes the most recent
 
 | Command | What it does | Needs mode |
 |---|---|---|
-| `component-check/discover [components]` | Where each component is used and which pages would be tested. `--all` lists every page, `--json` prints the manifest. | `readonly` |
-| `component-check/snapshot [components]` | Records how blocks look now, for the next `test` to compare against. `--reset`, `--viewport`, `--snapshot-path`, `--json`. | `full` |
-| `component-check/watch [components]` | Snapshots once, then re-checks on every save of a template or stylesheet. Keys: `r` run, `s` new snapshot, `q` quit. `--keep-snapshot`, `--paths`, `--viewport`, `--snapshot-path`. | `full` |
-| `component-check/test [components]` | Runs the browser checks, and compares with the snapshot if there is one. `--changed` / `--since=main` test only what your changes affect (needs Component Map). `--viewport=mobile`, `--no-snapshot`, `--snapshot-path`, `--json`, `--headed`. | `readonly` (page checks) / `full` (component checks, snapshots) |
-| `component-check/doctor` | Checks the setup. `--json`. | any |
+| `craft:component-check:discover [components]` | Where each component is used and which pages would be tested. `--all` lists every page, `--json` prints the manifest. | `readonly` |
+| `craft:component-check:snapshot [components]` | Records how blocks look now, for the next `test` to compare against. `--reset`, `--viewport`, `--snapshot-path`, `--json`. | `full` |
+| `craft:component-check:watch [components]` | Snapshots once, then re-checks on every save of a template or stylesheet. Keys: `r` run, `s` new snapshot, `q` quit. `--keep-snapshot`, `--paths`, `--viewport`, `--snapshot-path`. | `full` |
+| `craft:component-check:test [components]` | Runs the browser checks, and compares with the snapshot if there is one. `--changed` / `--since=main` test only what your changes affect (needs Component Map). `--viewport=mobile`, `--no-snapshot`, `--snapshot-path`, `--json`, `--headed`. | `readonly` (page checks) / `full` (component checks, snapshots) |
+| `craft:component-check:doctor` | Checks the setup. `--json`. | any |
 
 `components` is a comma-separated list of entry type handles: `hero,cards`.
 
@@ -257,7 +258,7 @@ branch on them.
 ### JSON
 
 ```bash
-php craft component-check/test hero --json
+php artisan craft:component-check:test hero --json
 ```
 
 ```json
@@ -338,7 +339,7 @@ Copy `vendor/b10k/craft-component-check/src/config.php` to
 
 ```yaml
 - run: npm ci && npx playwright install --with-deps chromium
-- run: php craft component-check/test --json > component-check.json
+- run: php artisan craft:component-check:test --json > component-check.json
   env:
     COMPONENT_CHECK_MODE: full
 - uses: actions/upload-artifact@v4
@@ -368,7 +369,7 @@ or per command: `--snapshot-path=tests/component-check` (relative to the
 project root). Then:
 
 ```bash
-php craft component-check/snapshot          # record the baseline
+php artisan craft:component-check:snapshot          # record the baseline
 git add tests/component-check && git commit -m "Component Check baseline"
 ```
 
@@ -424,10 +425,10 @@ jobs:
         with: { node-version: 20 }
       - run: composer install --no-interaction --prefer-dist
       - run: npm ci && npx playwright install --with-deps chromium
-      - run: php craft db/restore tests/content.sql   # your content dump
-      - run: php craft up --interactive=0
-      - run: php craft serve localhost:8080 > /dev/null 2>&1 &
-      - run: php craft component-check/test
+      - run: php artisan craft:db:restore tests/content.sql   # your content dump
+      - run: php artisan craft:up --no-interaction
+      - run: php artisan serve --host=localhost --port=8080 > /dev/null 2>&1 &
+      - run: php artisan craft:component-check:test
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -438,36 +439,35 @@ jobs:
 On failure the artifact holds, for every changed block, the screenshot from
 the baseline next to the one from this run, and a Playwright trace.
 
-## Craft's MCP server (Craft 5.12+)
+## Craft's MCP server (Craft 6)
 
-Craft 5.12 has an MCP server built in. Component Check adds to it what an
+Craft 6 has an MCP server built in. Component Check adds to it what an
 agent cannot work out from the content model or the files — what only a
 browser run knows. All of it read only: nothing starts a browser, writes a
 snapshot or changes content. Running the checks stays a shell command.
 
-- **In `info.get`'s instructions** (control-panel users): the mode, how the
+- **In `info_get`'s instructions** (control-panel users): the mode, how the
   last run went and when, whether templates changed since, which snapshot
   `test` compares against (local or a committed baseline, and where it was
   taken), and how to run a check.
-- **`component-check.results`**: the last run, case by case — block × page ×
+- **`component_check_results`**: the last run, case by case — block × page ×
   viewport — failures first, with the reasons in words and the paths to the
   screenshots. Filter by component, status or viewport.
-- **`component-check.usages`**: the live pages each block is on, its variants,
+- **`component_check_usages`**: the live pages each block is on, its variants,
   and which pages a run tests.
-- **`component-check.screenshot`**: a block as the run saw it and as the
+- **`component_check_screenshot`**: a block as the run saw it and as the
   snapshot has it, as images — for agents that cannot open files on the
   server.
-- **`component-check-coverage` in `content-model.audit`** (admins): blocks the
+- **`component-check-coverage` in `content_model_audit`** (admins): blocks the
   snapshot no longer covers (edited or deleted since), and blocks the last run
   could not locate because they have no markers.
 
 The tools need control-panel access and only appear where the mode is not
-`off`, so on production there is nothing. On Craft before 5.12 nothing
-changes. If a later Craft no longer accepts what the plugin hands its MCP
+`off`, so on production there is nothing. If a later Craft no longer accepts what the plugin hands its MCP
 server, the plugin leaves its part out and logs a warning (category
 `component-check`); the rest of the server keeps answering.
 
-To try it locally: `php craft mcp/serve --user=<id or username>` (stdio), or
+To try it locally: `php artisan craft:mcp:serve --user=<id or username>` (stdio), or
 enable the server in Settings → MCP and connect your agent to
 `https://<site>/admin/mcp`.
 

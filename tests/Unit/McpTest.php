@@ -136,7 +136,7 @@ class McpTest extends TestCase
             array_map(static fn(array $r) => [$r['type'], $r['blockId'] ?? null], $rows),
         );
         $this->assertStringContainsString('no longer exists', $rows[0]['message']);
-        $this->assertStringContainsString('component-check/snapshot hero', $rows[1]['message']);
+        $this->assertStringContainsString('craft:component-check:snapshot hero', $rows[1]['message']);
         $this->assertStringContainsString('cards', $rows[2]['message']);
     }
 

@@ -10,7 +10,7 @@ template, CSS or JavaScript that affects page-builder (Matrix) blocks.
    handles.
 
    ```bash
-   php craft component-check/discover --json
+   php artisan craft:component-check:discover --json
    ```
 
    `components` lists every handle with its usage; `pages` lists the pages that
@@ -21,23 +21,23 @@ template, CSS or JavaScript that affects page-builder (Matrix) blocks.
    (comma-separated):
 
    ```bash
-   php craft component-check/snapshot hero,cards --json
+   php artisan craft:component-check:snapshot hero,cards --json
    ```
 
 3. **Make your change, then test the same components:**
 
    ```bash
-   php craft component-check/test hero,cards --json
+   php artisan craft:component-check:test hero,cards --json
    ```
 
    Exit code `0` = passed, `1` = regressions, `2` = could not run.
 
    With Component Map installed you do not have to name them:
-   `php craft component-check/test --changed --json` tests what your
+   `php artisan craft:component-check:test --changed --json` tests what your
    uncommitted changes affect (`selection.reason` says why).
 
 4. **On exit code 2**, read `error` and run
-   `php craft component-check/doctor --json`. Report setup problems to the
+   `php artisan craft:component-check:doctor --json`. Report setup problems to the
    human instead of working around them. Never change the plugin's `mode` to
    make a run succeed.
 
@@ -63,23 +63,23 @@ template, CSS or JavaScript that affects page-builder (Matrix) blocks.
 7. **Before you finish**, run the whole project once without arguments:
 
    ```bash
-   php craft component-check/test --json
+   php artisan craft:component-check:test --json
    ```
 
    A shared partial can break a component you did not touch.
 
 ## Without a shell: Craft's MCP server
 
-If you are connected to the site's MCP server (Craft 5.12+) instead of a
-shell, `info.get` says how the last run went, `component-check.results` lists
-its cases with the reasons, and `component-check.screenshot` shows a failed
+If you are connected to the site's MCP server (Craft 6) instead of a
+shell, `info_get` says how the last run went, `component_check_results` lists
+its cases with the reasons, and `component_check_screenshot` shows a failed
 block before and after. These read what a run left behind; they do not run
 anything. When `results` says templates changed after the run, ask the human
-to run `component-check/test` again before you rely on it.
+to run `craft:component-check:test` again before you rely on it.
 
 ## Rules
 
-- Do not use `component-check/watch`: it is interactive and never exits. Use
+- Do not use `craft:component-check:watch`: it is interactive and never exits. Use
   `snapshot` + `test --json`.
 
 - Do not edit content in the control panel to make a test pass. The tests run

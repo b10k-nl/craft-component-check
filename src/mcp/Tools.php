@@ -334,8 +334,9 @@ class Tools
      */
     private function guard(): void
     {
-        $plugin = Plugin::getInstance();
-        if ($plugin === null || $plugin->getMode() === ActivationPolicy::OFF) {
+        // Craft 6 types getInstance() as never null: the tools are only ever
+        // registered by the running plugin.
+        if (Plugin::getInstance()->getMode() === ActivationPolicy::OFF) {
             throw new ToolCallException('Component Check is off on this environment.');
         }
         if (!Craft::$app->getUser()->checkPermission('accessCp')) {
